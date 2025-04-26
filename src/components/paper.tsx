@@ -24,7 +24,7 @@ export default function Sheet({
     <div
       style={{ transform: `translate(${localOffset.x}px, ${localOffset.y}px)` }}
       className={cn(
-        "group absolute min-h-96 min-w-xl cursor-default overflow-hidden rounded-sm bg-neutral-50 text-gray-800 shadow-lg transition-none duration-300 ease-in-out [transition:border-radius_150ms_cubic-bezier(0.4,0,0.2,1)] hover:rounded-br-4xl",
+        "group absolute min-h-96 cursor-default overflow-hidden rounded-sm bg-neutral-50 text-gray-800 shadow-lg transition-none duration-300 ease-in-out [transition:border-radius_150ms_cubic-bezier(0.4,0,0.2,1)] hover:rounded-br-4xl",
         isDragging && "pointer-events-none opacity-90 select-none",
         className,
       )}
@@ -64,7 +64,7 @@ export function LinedPaper({
       <article className="inset-0 m-4 mt-6 h-160 w-xl overflow-scroll">
         <input
           type="text"
-          className="sticky -top-2 z-10 mb-2 w-full border-b border-red-400 bg-neutral-50 text-lg font-medium outline-none"
+          className="sticky -top-2 z-10 mb-2 w-full border-b border-red-400 bg-neutral-50 text-xl font-medium outline-none"
           onChange={(e) => setTitleValue(e.target.value)}
           value={titleValue}
         />
@@ -92,6 +92,32 @@ export function LinedPaper({
           />
         </div>
       </article>
+    </Sheet>
+  );
+}
+
+export function Still({
+  title,
+  src,
+  offset,
+  setOffset,
+}: {
+  title?: string;
+  src?: string;
+  offset?: BoardItem["offset"];
+  setOffset?: (offset: BoardItem["offset"]) => void;
+}) {
+  const [titleValue, setTitleValue] = useState(title ?? "");
+
+  return (
+    <Sheet className="p-4" offset={offset} setOffset={setOffset}>
+      <img src={src} className="size-96 rounded-xs" />
+      <input
+        type="text"
+        className="mt-4 w-full text-xl font-medium outline-none"
+        onChange={(e) => setTitleValue(e.target.value)}
+        value={titleValue}
+      />
     </Sheet>
   );
 }

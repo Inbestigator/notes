@@ -1,7 +1,7 @@
 "use client";
 
 import PanContainer from "@/components/pan-container";
-import Sheet, { LinedPaper } from "@/components/paper";
+import { LinedPaper, Still } from "@/components/paper";
 import { TextSticky } from "@/components/sticky";
 import { useState } from "react";
 
@@ -23,12 +23,21 @@ export interface LinedPaper extends BoardItem {
   content: string;
 }
 
+export interface Still extends BoardItem {
+  type: "still";
+  title: string;
+  src: string;
+}
+
 const id1 = crypto.randomUUID();
 const id2 = crypto.randomUUID();
 const id3 = crypto.randomUUID();
+const id4 = crypto.randomUUID();
 
 export default function Home() {
-  const [notes, setNotes] = useState<Map<string, StickyNote | LinedPaper>>(
+  const [notes, setNotes] = useState<
+    Map<string, StickyNote | LinedPaper | Still>
+  >(
     new Map([
       [
         id1,
@@ -101,6 +110,17 @@ Vestibulum suscipit ligula lectus.`,
           z: 2,
         },
       ],
+      [
+        id4,
+        {
+          id: id4,
+          type: "still",
+          title: "Still 1",
+          src: "https://hips.hearstapps.com/hmg-prod/images/dog-puppy-on-garden-royalty-free-image-1586966191.jpg?crop=0.752xw:1.00xh;0.175xw,0&resize=1200:*",
+          offset: { x: 100, y: 30 },
+          z: 3,
+        },
+      ],
     ]),
   );
 
@@ -139,14 +159,21 @@ Vestibulum suscipit ligula lectus.`,
                 content={note.content}
                 placeholder={note.title}
               />
-            ) : (
+            ) : note.type === "lined-paper" ? (
               <LinedPaper
                 setOffset={(offset) => handleSetOffset(id, offset)}
                 offset={note.offset}
                 title={note.title}
                 content={note.content}
               />
-            )}
+            ) : note.type === "still" ? (
+              <Still
+                setOffset={(offset) => handleSetOffset(id, offset)}
+                offset={note.offset}
+                title={note.title}
+                src={note.src}
+              />
+            ) : null}
           </div>
         ))}
     </PanContainer>

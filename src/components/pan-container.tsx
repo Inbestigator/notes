@@ -1,13 +1,24 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, createContext, useContext } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  createContext,
+  useContext,
+} from "react";
 
 const PanContext = createContext({} as { x: number; y: number });
 export function usePanOffset() {
   return useContext(PanContext);
 }
 
-export default function PanContainer({ children }: { children: React.ReactNode }) {
+export default function PanContainer({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [hasStarted, setHasStarted] = useState(false);
@@ -22,12 +33,15 @@ export default function PanContainer({ children }: { children: React.ReactNode }
 
       setHasStarted(true);
       e.preventDefault();
-      setOffset((prev) => ({ x: prev.x - e.deltaX / 1.25, y: prev.y - e.deltaY / 1.25 }));
+      setOffset((prev) => ({
+        x: prev.x - e.deltaX / 1.25,
+        y: prev.y - e.deltaY / 1.25,
+      }));
 
       if (wheelTimeoutRef.current) clearTimeout(wheelTimeoutRef.current);
       wheelTimeoutRef.current = setTimeout(() => setHasStarted(false), 150);
     },
-    [hasStarted]
+    [hasStarted],
   );
 
   useEffect(() => {
@@ -42,7 +56,7 @@ export default function PanContainer({ children }: { children: React.ReactNode }
       <div
         data-pannable
         ref={containerRef}
-        className="overflow-hidden cursor-move absolute inset-0 bg-[size:32px] bg-clip-border"
+        className="absolute inset-0 cursor-move overflow-hidden bg-[size:32px] bg-clip-border"
         style={{
           backgroundPosition: `${offset.x}px ${offset.y}px`,
           backgroundImage: "url('/dots.png')",

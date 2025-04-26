@@ -24,7 +24,7 @@ export default function StickyNote({
     <div
       style={{ transform: `translate(${localOffset.x}px, ${localOffset.y}px)` }}
       className={cn(
-        "group absolute min-h-52 max-w-xs cursor-default overflow-hidden rounded-sm bg-yellow-200 p-4 text-gray-800 shadow-lg transition-none duration-300 ease-in-out [transition:border-radius_150ms_cubic-bezier(0.4,0,0.2,1)] hover:rounded-br-4xl",
+        "group absolute min-h-52 cursor-default overflow-hidden rounded-sm bg-yellow-200 p-4 text-gray-800 shadow-lg transition-none duration-300 ease-in-out [transition:border-radius_150ms_cubic-bezier(0.4,0,0.2,1)] hover:rounded-br-4xl",
         isDragging && "pointer-events-none opacity-90",
         className,
       )}
