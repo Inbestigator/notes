@@ -68,7 +68,7 @@ export function LinedPaper({
         />
         <div className="relative h-fit">
           <div
-            className="pointer-events-none absolute inset-0"
+            className="pointer-events-none absolute inset-0 -z-10"
             style={{
               backgroundPositionY: "calc(1lh - 2px)",
               backgroundSize: "100% 1lh",
