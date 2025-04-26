@@ -120,7 +120,7 @@ export function Still({
 
   return (
     <Sheet id={id} className="p-4" offset={item.offset}>
-      <img src={item.src} className="size-96 rounded-xs" />
+      <img src={item.src} alt={item.title} className="size-96 rounded-xs" />
       <input
         type="text"
         className="mt-4 w-full text-xl font-medium outline-none"

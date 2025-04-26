@@ -88,6 +88,7 @@ export default function Sidebar({
           }
           data-pannable
         >
+          {/* eslint-disable-next-line jsx-a11y/alt-text */}
           <Image />
         </Button>
         <Button

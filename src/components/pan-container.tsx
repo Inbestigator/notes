@@ -46,18 +46,13 @@ export default function PanContainer({
     [hasStarted],
   );
 
-  const handleMouseDown = useCallback((e: MouseEvent) => {
+  const handleMouseUpDown = useCallback((e: MouseEvent) => {
     if (e.button === 1) {
-      isMiddleClicking.current = true;
-      lastMousePos.current = { x: e.clientX, y: e.clientY };
+      isMiddleClicking.current = !isMiddleClicking.current;
+      lastMousePos.current = isMiddleClicking.current
+        ? { x: e.clientX, y: e.clientY }
+        : null;
       e.preventDefault();
-    }
-  }, []);
-
-  const handleMouseUp = useCallback((e: MouseEvent) => {
-    if (e.button === 1) {
-      isMiddleClicking.current = false;
-      lastMousePos.current = null;
     }
   }, []);
 
@@ -80,17 +75,17 @@ export default function PanContainer({
     if (!el) return;
 
     el.addEventListener("wheel", handleWheel, { passive: false });
-    window.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("mousedown", handleMouseUpDown);
     window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
+    window.addEventListener("mouseup", handleMouseUpDown);
 
     return () => {
       el.removeEventListener("wheel", handleWheel);
-      window.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("mousedown", handleMouseUpDown);
       window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("mouseup", handleMouseUpDown);
     };
-  }, [handleWheel]);
+  }, [handleWheel, handleMouseUpDown, handleMouseMove]);
 
   return (
     <PanContext.Provider value={offset}>
