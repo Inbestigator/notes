@@ -4,6 +4,7 @@ import PanContainer from "@/components/pan-container";
 import { LinedPaper, Still } from "@/components/paper";
 import { TextSticky } from "@/components/sticky";
 import { useEffect, useState } from "react";
+import Sidebar from "@/components/sidebar";
 
 export interface BaseBoardItem {
   id: string;
@@ -31,12 +32,12 @@ export interface Still extends BaseBoardItem {
 
 export type BoardItem = StickyNote | LinedPaper | Still;
 
-const id1 = crypto.randomUUID();
-const id2 = crypto.randomUUID();
-const id3 = crypto.randomUUID();
-const id4 = crypto.randomUUID();
-
 export default function Home() {
+  const id1 = "951316f9-5824-42c9-908f-06547d43c3c1";
+  const id2 = "441a2af4-3607-47b9-9028-533ba69473a3";
+  const id3 = "ccf83191-f5ef-4116-b067-bc2247b54daa";
+  const id4 = "40c3b6f8-7a8b-4462-b135-02fa14d5bdb5";
+
   const [notes, setNotes] = useState<Record<string, BoardItem>>({
     [id1]: {
       id: id1,
@@ -105,6 +106,48 @@ export default function Home() {
     });
   }
 
+  function addItem(type: BoardItem["type"], offset: BaseBoardItem["offset"]) {
+    const id = crypto.randomUUID();
+    switch (type) {
+      case "lined-paper":
+        updateItem(id, {
+          id,
+          type: "lined-paper",
+          content: "",
+          offset,
+          z: 0,
+        });
+        break;
+      case "sticky":
+        updateItem(id, {
+          id,
+          type: "sticky",
+          content: "",
+          offset,
+          z: 0,
+        });
+        break;
+      case "still":
+        updateItem(id, {
+          id,
+          type: "still",
+          src: "https://placehold.co/384",
+          offset,
+          z: 0,
+        });
+        break;
+    }
+    handleBringToFront(id, 0);
+  }
+
+  function removeItem(id: string) {
+    setNotes((prev) => {
+      const newNotes = { ...prev };
+      delete newNotes[id];
+      return newNotes;
+    });
+  }
+
   useEffect(() => {
     const handleItemUpdate = (e: Event) => {
       if (e instanceof CustomEvent) {
@@ -115,7 +158,6 @@ export default function Home() {
     };
 
     window.addEventListener("itemUpdate", handleItemUpdate);
-
     return () => {
       window.removeEventListener("itemUpdate", handleItemUpdate);
     };
@@ -123,19 +165,24 @@ export default function Home() {
 
   return (
     <PanContainer>
-      {Object.entries(notes)
-        .sort((a, b) => a[1].z - b[1].z)
-        .map(([id, note]) => (
-          <div key={id} onDoubleClick={() => handleBringToFront(id, note.z)}>
+      {Object.values(notes)
+        .sort((a, b) => a.z - b.z)
+        .map((note) => (
+          <div
+            id={note.id}
+            key={note.id}
+            onDoubleClick={() => handleBringToFront(note.id, note.z)}
+          >
             {note.type === "sticky" ? (
-              <TextSticky id={id} item={note} />
+              <TextSticky id={note.id} item={note} />
             ) : note.type === "lined-paper" ? (
-              <LinedPaper id={id} item={note} />
+              <LinedPaper id={note.id} item={note} />
             ) : note.type === "still" ? (
-              <Still id={id} item={note} />
+              <Still id={note.id} item={note} />
             ) : null}
           </div>
         ))}
+      <Sidebar addItem={addItem} removeItem={removeItem} />
     </PanContainer>
   );
 }
