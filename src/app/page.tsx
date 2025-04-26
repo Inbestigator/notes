@@ -3,31 +3,33 @@
 import PanContainer from "@/components/pan-container";
 import { LinedPaper, Still } from "@/components/paper";
 import { TextSticky } from "@/components/sticky";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-export interface BoardItem {
+export interface BaseBoardItem {
   id: string;
   offset: { x: number; y: number };
   z: number;
 }
 
-export interface StickyNote extends BoardItem {
+export interface StickyNote extends BaseBoardItem {
   type: "sticky";
-  title: string;
   content: string;
+  width?: number;
 }
 
-export interface LinedPaper extends BoardItem {
+export interface LinedPaper extends BaseBoardItem {
   type: "lined-paper";
   title: string;
   content: string;
 }
 
-export interface Still extends BoardItem {
+export interface Still extends BaseBoardItem {
   type: "still";
   title: string;
   src: string;
 }
+
+export type BoardItem = StickyNote | LinedPaper | Still;
 
 const id1 = crypto.randomUUID();
 const id2 = crypto.randomUUID();
@@ -35,20 +37,17 @@ const id3 = crypto.randomUUID();
 const id4 = crypto.randomUUID();
 
 export default function Home() {
-  const [notes, setNotes] = useState<
-    Map<string, StickyNote | LinedPaper | Still>
-  >(
+  const [notes, setNotes] = useState<Map<string, BoardItem>>(
     new Map([
       [
         id1,
         {
           id: id1,
           type: "sticky",
-          title: "Note 1",
           content:
             "Josephine was so cute when she was a puppy!\n\nShe's already 16 now!",
-          offset: { x: 837, y: 574 },
-          z: 0,
+          offset: { x: 1153, y: 413 },
+          z: 1,
         },
       ],
       [
@@ -56,11 +55,11 @@ export default function Home() {
         {
           id: id2,
           type: "sticky",
-          title: "Note 2",
           content:
             "Golden Retriever puppies are some of the fuzziest, softest little creatures you'll ever meet. When they're young, their fur is extra fluffy, like a warm, golden cloud you can't help but cuddle. Every hug feels like wrapping yourself in pure happiness. Their fuzzy coats, paired with their playful energy and innocent eyes, make Golden Retriever puppies absolutely irresistible. It's no wonder they steal hearts from the moment you meet them.",
-          offset: { x: 1150, y: 376 },
-          z: 1,
+          offset: { x: 772, y: 661 },
+          width: 512,
+          z: 0,
         },
       ],
       [
@@ -92,59 +91,70 @@ export default function Home() {
     ]),
   );
 
-  function handleSetOffset(id: string, offset: { x: number; y: number }) {
+  function updateItem(
+    id: string,
+    item:
+      | Partial<BoardItem>
+      | ((prev: Map<string, BoardItem>) => Partial<BoardItem>),
+  ) {
     setNotes((prev) => {
       const newNotes = new Map(prev);
+      if (typeof item === "function") {
+        item = item(newNotes);
+      }
       newNotes.set(id, {
         ...newNotes.get(id)!,
-        offset,
-      });
+        ...item,
+      } as BoardItem);
       return newNotes;
     });
   }
 
-  function handleBringToFront(id: string) {
-    setNotes((prev) => {
-      const newNotes = new Map(prev);
-      newNotes.set(id, {
-        ...newNotes.get(id)!,
-        z: Math.max(...newNotes.values().map((n) => n.z)) + 1,
-      });
-      return newNotes;
+  function handleBringToFront(id: string, currentZ: number) {
+    updateItem(id, (n) => {
+      const highest = Math.max(...n.values().map((n) => n.z));
+      return {
+        z: highest > currentZ ? highest + 1 : currentZ,
+      };
     });
   }
+
+  function handleStickySetWidth(id: string, width: number) {
+    updateItem(id, { width });
+  }
+
+  useEffect(() => {
+    const handleItemUpdate = (e: Event) => {
+      if (e instanceof CustomEvent) {
+        if (!e.detail || !e.detail.id || !e.detail.partial) return;
+
+        updateItem(e.detail.id, e.detail.partial);
+      }
+    };
+
+    window.addEventListener("itemUpdate", handleItemUpdate);
+
+    return () => {
+      window.removeEventListener("itemUpdate", handleItemUpdate);
+    };
+  }, []);
 
   return (
     <PanContainer>
       {[...notes]
         .sort((a, b) => a[1].z - b[1].z)
         .map(([id, note]) => (
-          <div
-            key={id}
-            onMouseOver={() => console.log(note)}
-            onClick={() => handleBringToFront(id)}
-          >
+          <div key={id} onDoubleClick={() => handleBringToFront(id, note.z)}>
             {note.type === "sticky" ? (
               <TextSticky
-                setOffset={(offset) => handleSetOffset(id, offset)}
-                offset={note.offset}
-                content={note.content}
-                placeholder={note.title}
+                id={id}
+                item={note}
+                setWidth={(width) => handleStickySetWidth(id, width)}
               />
             ) : note.type === "lined-paper" ? (
-              <LinedPaper
-                setOffset={(offset) => handleSetOffset(id, offset)}
-                offset={note.offset}
-                title={note.title}
-                content={note.content}
-              />
+              <LinedPaper id={id} item={note} />
             ) : note.type === "still" ? (
-              <Still
-                setOffset={(offset) => handleSetOffset(id, offset)}
-                offset={note.offset}
-                title={note.title}
-                src={note.src}
-              />
+              <Still id={id} item={note} />
             ) : null}
           </div>
         ))}

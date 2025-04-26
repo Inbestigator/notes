@@ -1,24 +1,22 @@
 "use client";
-import { type BoardItem } from "@/app/page";
+import type { Still, BaseBoardItem, LinedPaper } from "@/app/page";
 import { cn } from "@/lib/utils";
 import useDrag from "@/lib/hooks/drag";
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
+import { useDebouncedCallback } from "use-debounce";
 
 export default function Sheet({
+  id,
   children,
   className,
   offset = { x: 0, y: 0 },
-  setOffset,
 }: {
+  id: string;
   children: React.ReactNode;
   className?: string;
-  offset?: BoardItem["offset"];
-  setOffset?: (offset: BoardItem["offset"]) => void;
+  offset?: BaseBoardItem["offset"];
 }) {
-  const { isDragging, localOffset, handleMouseDown } = useDrag(
-    offset,
-    setOffset,
-  );
+  const { isDragging, localOffset, handleMouseDown } = useDrag(id, offset);
 
   return (
     <div
@@ -39,34 +37,34 @@ export default function Sheet({
 }
 
 export function LinedPaper({
-  title,
-  content,
-  offset,
-  setOffset,
+  id,
+  item,
+  placeholderTitle,
+  placeholderContent,
 }: {
-  title?: string;
-  content?: string;
-  offset?: BoardItem["offset"];
-  setOffset?: (offset: BoardItem["offset"]) => void;
+  id: string;
+  item: LinedPaper;
+  placeholderTitle?: string;
+  placeholderContent?: string;
 }) {
-  const [titleValue, setTitleValue] = useState(title ?? "");
-  const [contentValue, setContentValue] = useState(content ?? "");
+  const debounced = useDebouncedCallback((title, content) => {
+    window.dispatchEvent(
+      new CustomEvent("itemUpdate", {
+        detail: { id, partial: { title, content } },
+      }),
+    );
+  }, 150);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
-    if (textareaRef.current) textareaRef.current.style.height = "auto";
-    if (textareaRef.current)
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-  }, [contentValue]);
-
   return (
-    <Sheet offset={offset} setOffset={setOffset}>
+    <Sheet id={id} offset={item.offset}>
       <article className="inset-0 m-4 mt-6 h-160 w-xl overflow-scroll">
         <input
           type="text"
           className="sticky -top-2 z-10 mb-2 w-full border-b border-red-400 bg-neutral-50 text-xl font-medium outline-none"
-          onChange={(e) => setTitleValue(e.target.value)}
-          value={titleValue}
+          placeholder={placeholderTitle}
+          onChange={(e) => debounced(e.target.value, item.content)}
+          defaultValue={item.title}
         />
         <div className="relative h-fit">
           <div
@@ -80,14 +78,21 @@ export function LinedPaper({
           />
           <textarea
             className="min-h-150 w-full resize-none outline-none"
+            placeholder={placeholderContent}
             style={{
               backgroundPositionY: "calc(1lh - 2px)",
               backgroundSize: "100% 1lh",
               backgroundImage:
                 "repeating-linear-gradient(0deg, transparent 0, transparent calc(1lh - 1px), oklch(80.9% 0.105 251.813) calc(1lh - 1px), oklch(80.9% 0.105 251.813) 1lh)",
             }}
-            onChange={(e) => setContentValue(e.target.value)}
-            value={contentValue}
+            onChange={(e) => {
+              debounced(item.title, e.target.value);
+              if (textareaRef.current)
+                textareaRef.current.style.height = "auto";
+              if (textareaRef.current)
+                textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+            }}
+            defaultValue={item.content}
             ref={textareaRef}
           />
         </div>
@@ -97,26 +102,31 @@ export function LinedPaper({
 }
 
 export function Still({
-  title,
-  src,
-  offset,
-  setOffset,
+  id,
+  item,
+  placeholderTitle,
 }: {
-  title?: string;
-  src?: string;
-  offset?: BoardItem["offset"];
-  setOffset?: (offset: BoardItem["offset"]) => void;
+  id: string;
+  item: Still;
+  placeholderTitle?: string;
 }) {
-  const [titleValue, setTitleValue] = useState(title ?? "");
+  const debounced = useDebouncedCallback((title) => {
+    window.dispatchEvent(
+      new CustomEvent("itemUpdate", {
+        detail: { id, partial: { title } },
+      }),
+    );
+  }, 150);
 
   return (
-    <Sheet className="p-4" offset={offset} setOffset={setOffset}>
-      <img src={src} className="size-96 rounded-xs" />
+    <Sheet id={id} className="p-4" offset={item.offset}>
+      <img src={item.src} className="size-96 rounded-xs" />
       <input
         type="text"
         className="mt-4 w-full text-xl font-medium outline-none"
-        onChange={(e) => setTitleValue(e.target.value)}
-        value={titleValue}
+        placeholder={placeholderTitle ?? "A photo of..."}
+        onChange={(e) => debounced(e.target.value)}
+        defaultValue={item.title}
       />
     </Sheet>
   );
