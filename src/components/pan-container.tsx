@@ -22,7 +22,9 @@ export default function PanContainer({
   const containerRef = useRef<HTMLDivElement>(null);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [hasStarted, setHasStarted] = useState(false);
-  const wheelTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const wheelTimeoutRef = useRef<NodeJS.Timeout>(null);
+  const isMiddleClicking = useRef(false);
+  const lastMousePos = useRef<{ x: number; y: number }>(null);
 
   const handleWheel = useCallback(
     (e: WheelEvent) => {
@@ -44,11 +46,50 @@ export default function PanContainer({
     [hasStarted],
   );
 
+  const handleMouseDown = useCallback((e: MouseEvent) => {
+    if (e.button === 1) {
+      isMiddleClicking.current = true;
+      lastMousePos.current = { x: e.clientX, y: e.clientY };
+      e.preventDefault();
+    }
+  }, []);
+
+  const handleMouseUp = useCallback((e: MouseEvent) => {
+    if (e.button === 1) {
+      isMiddleClicking.current = false;
+      lastMousePos.current = null;
+    }
+  }, []);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (isMiddleClicking.current && lastMousePos.current) {
+      const dx = e.clientX - lastMousePos.current.x;
+      const dy = e.clientY - lastMousePos.current.y;
+
+      setOffset((prev) => ({
+        x: prev.x + dx,
+        y: prev.y + dy,
+      }));
+
+      lastMousePos.current = { x: e.clientX, y: e.clientY };
+    }
+  }, []);
+
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+
     el.addEventListener("wheel", handleWheel, { passive: false });
-    return () => el.removeEventListener("wheel", handleWheel);
+    window.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      el.removeEventListener("wheel", handleWheel);
+      window.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
   }, [handleWheel]);
 
   return (
