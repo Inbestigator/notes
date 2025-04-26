@@ -44,17 +44,22 @@ export function TextSticky({
   id,
   item,
   placeholder,
-  setWidth,
 }: {
   id: string;
   item: StickyNote;
   placeholder?: string;
-  setWidth?: (width: number) => void;
 }) {
-  const debounced = useDebouncedCallback((content) => {
+  const debouncedContent = useDebouncedCallback((content) => {
     window.dispatchEvent(
       new CustomEvent("itemUpdate", {
         detail: { id, partial: { content } },
+      }),
+    );
+  }, 150);
+  const debouncedResize = useDebouncedCallback((width) => {
+    window.dispatchEvent(
+      new CustomEvent("itemUpdate", {
+        detail: { id, partial: { width } },
       }),
     );
   }, 150);
@@ -70,7 +75,7 @@ export function TextSticky({
     new ResizeObserver(() => {
       if (!textareaRef.current) return;
       calcHeight();
-      if (setWidth) setWidth(textareaRef.current.offsetWidth);
+      debouncedResize(textareaRef.current.offsetWidth);
     }).observe(textareaRef.current!);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -82,7 +87,7 @@ export function TextSticky({
         placeholder={placeholder ?? "New sticky note..."}
         onChange={(e) => {
           calcHeight();
-          debounced(e.target.value);
+          debouncedContent(e.target.value);
         }}
         style={{ width: item.width }}
         defaultValue={item.content}

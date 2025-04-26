@@ -47,7 +47,7 @@ export function LinedPaper({
   placeholderTitle?: string;
   placeholderContent?: string;
 }) {
-  const debounced = useDebouncedCallback((title, content) => {
+  const debouncedDetails = useDebouncedCallback((title, content) => {
     window.dispatchEvent(
       new CustomEvent("itemUpdate", {
         detail: { id, partial: { title, content } },
@@ -63,7 +63,7 @@ export function LinedPaper({
           type="text"
           className="sticky -top-2 z-10 mb-2 w-full border-b border-red-400 bg-neutral-50 text-xl font-medium outline-none"
           placeholder={placeholderTitle}
-          onChange={(e) => debounced(e.target.value, item.content)}
+          onChange={(e) => debouncedDetails(e.target.value, item.content)}
           defaultValue={item.title}
         />
         <div className="relative h-fit">
@@ -86,7 +86,7 @@ export function LinedPaper({
                 "repeating-linear-gradient(0deg, transparent 0, transparent calc(1lh - 1px), oklch(80.9% 0.105 251.813) calc(1lh - 1px), oklch(80.9% 0.105 251.813) 1lh)",
             }}
             onChange={(e) => {
-              debounced(item.title, e.target.value);
+              debouncedDetails(item.title, e.target.value);
               if (textareaRef.current)
                 textareaRef.current.style.height = "auto";
               if (textareaRef.current)
@@ -110,7 +110,7 @@ export function Still({
   item: Still;
   placeholderTitle?: string;
 }) {
-  const debounced = useDebouncedCallback((title) => {
+  const debouncedTitle = useDebouncedCallback((title) => {
     window.dispatchEvent(
       new CustomEvent("itemUpdate", {
         detail: { id, partial: { title } },
@@ -125,7 +125,7 @@ export function Still({
         type="text"
         className="mt-4 w-full text-xl font-medium outline-none"
         placeholder={placeholderTitle ?? "A photo of..."}
-        onChange={(e) => debounced(e.target.value)}
+        onChange={(e) => debouncedTitle(e.target.value)}
         defaultValue={item.title}
       />
     </Sheet>
