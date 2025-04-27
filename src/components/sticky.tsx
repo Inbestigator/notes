@@ -18,7 +18,7 @@ const StickyNote = memo(function StickyNote({
     <ItemWrapper
       id={id}
       tabClassName="bg-yellow-300"
-      className={cn("bg-yellow-200 text-gray-800", className)}
+      className={cn("min-h-52 bg-yellow-200 p-4 text-gray-800", className)}
     >
       {children}
     </ItemWrapper>

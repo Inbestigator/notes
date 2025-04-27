@@ -18,7 +18,7 @@ export default function Sheet({
     <ItemWrapper
       id={id}
       tabClassName="bg-neutral-200"
-      className={cn("bg-neutral-50 text-gray-800", className)}
+      className={cn("min-h-96 bg-neutral-50 text-gray-800", className)}
     >
       {children}
     </ItemWrapper>
