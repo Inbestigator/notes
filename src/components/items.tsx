@@ -4,6 +4,7 @@ import { useContext, createContext, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { nanoid } from "nanoid";
 import plugins from "@/plugins";
+import { usePanOffset, useSetPanOffset } from "./pan-container";
 
 export interface BaseItem {
   id: string;
@@ -27,14 +28,61 @@ export function useItems() {
 export interface Project {
   id: string;
   title?: string;
+  lastModified: number;
+  offset: { x: number; y: number };
   plugins: string[];
   items: Record<string, BaseItem>;
+}
+
+function createDashboard(projects: string[]) {
+  return Object.fromEntries(
+    projects
+      .sort((a, b) => {
+        const aData = JSON.parse(localStorage.getItem(a) ?? "") as Project;
+        const bData = JSON.parse(localStorage.getItem(b) ?? "") as Project;
+        return bData.lastModified - aData.lastModified;
+      })
+      .map((p, i) => {
+        const project = JSON.parse(localStorage.getItem(p) ?? "") as Project;
+        const xFactor = i * (window.innerWidth * 0.875);
+        return [
+          [
+            p + "title",
+            {
+              id: p + "title",
+              type: "header",
+              offset: {
+                x: i * (window.innerWidth * 0.875),
+                y: window.innerHeight * 0.75,
+              },
+              z: 1,
+              variant: 1,
+              content: project.title ?? "Untitled Project",
+            },
+          ],
+          [
+            p,
+            {
+              id: p,
+              type: "project-window",
+              offset: { x: xFactor, y: 0 },
+              z: 0,
+              variant: 0,
+              project,
+            },
+          ],
+        ];
+      })
+      .flat(1),
+  );
 }
 
 export default function Items({ children }: { children?: React.ReactNode }) {
   const [projectData, setProjectData] = useState({} as Project);
   const [items, setItems] = useState({} as Project["items"]);
   const searchParams = useSearchParams();
+  const panOffset = usePanOffset();
+  const setPanOffset = useSetPanOffset();
   const projectId = searchParams.get("i");
 
   useEffect(() => {
@@ -50,6 +98,7 @@ export default function Items({ children }: { children?: React.ReactNode }) {
       const parsedProject = JSON.parse(storedProject) as Project;
       setProjectData(parsedProject);
       setItems(parsedProject.items);
+      setPanOffset(parsedProject.offset);
     } else if (projectId === "pick") {
       const projects = Object.keys(localStorage).filter((k) =>
         k.startsWith("project-"),
@@ -57,31 +106,14 @@ export default function Items({ children }: { children?: React.ReactNode }) {
       setProjectData({
         id: projectId,
         title: "Pick a project",
+        offset: { x: 0, y: 0 },
+        lastModified: Date.now(),
         plugins: ["iframe"],
         items: {},
       });
-      setItems(
-        Object.fromEntries(
-          projects.map((p) => {
-            const project = JSON.parse(
-              localStorage.getItem(p) ?? "",
-            ) as Project;
-            return [
-              p,
-              {
-                id: p,
-                type: "project-window",
-                offset: { x: 0, y: 0 },
-                z: 0,
-                variant: 0,
-                project,
-              },
-            ];
-          }),
-        ),
-      );
+      setItems(createDashboard(projects));
     }
-  }, [projectId, searchParams]);
+  }, [projectId, searchParams, setPanOffset]);
 
   useEffect(() => {
     if (
@@ -97,11 +129,15 @@ export default function Items({ children }: { children?: React.ReactNode }) {
       JSON.stringify({
         id: projectId,
         title: projectData.title,
-        plugins: Object.values(items).map((i) => i.type),
+        offset: panOffset,
+        lastModified: Date.now(),
+        plugins: new Set(Object.values(items).map((i) => i.type))
+          .values()
+          .toArray(),
         items,
       }),
     );
-  }, [projectData, items, projectId, searchParams]);
+  }, [projectData, items, projectId, searchParams, panOffset]);
 
   function updateItem(
     id: string,

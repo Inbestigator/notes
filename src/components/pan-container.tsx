@@ -9,9 +9,18 @@ import {
   useContext,
 } from "react";
 
-const PanContext = createContext({} as { x: number; y: number });
+const PanContext = createContext(
+  {} as {
+    offset: { x: number; y: number };
+    setOffset: (offset: { x: number; y: number }) => void;
+  },
+);
+
 export function usePanOffset() {
-  return useContext(PanContext);
+  return useContext(PanContext).offset;
+}
+export function useSetPanOffset() {
+  return useContext(PanContext).setOffset;
 }
 
 export default function PanContainer({
@@ -88,7 +97,7 @@ export default function PanContainer({
   }, [handleWheel, handleMouseUpDown, handleMouseMove]);
 
   return (
-    <PanContext.Provider value={offset}>
+    <PanContext.Provider value={{ offset, setOffset }}>
       <div
         data-pannable
         ref={containerRef}
