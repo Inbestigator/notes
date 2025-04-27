@@ -4,7 +4,7 @@ import PanContainer from "@/components/pan-container";
 import { LinedPaper, Still } from "@/components/paper";
 import { TextSticky } from "@/components/sticky";
 import { useEffect, useState } from "react";
-import Sidebar from "@/components/sidebar";
+import HUD from "@/components/hud";
 
 export interface BaseBoardItem {
   id: string;
@@ -182,7 +182,7 @@ export default function Home() {
             ) : null}
           </div>
         ))}
-      <Sidebar addItem={addItem} removeItem={removeItem} />
+      <HUD addItem={addItem} removeItem={removeItem} />
     </PanContainer>
   );
 }
