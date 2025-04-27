@@ -1,4 +1,4 @@
-import { useItems } from "@/app/page";
+import { useItems } from "./items";
 import useDrag from "@/lib/hooks/drag";
 import { cn } from "@/lib/utils";
 

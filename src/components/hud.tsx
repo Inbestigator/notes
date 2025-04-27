@@ -6,19 +6,60 @@ import {
   Shredder,
   StickyNoteIcon,
 } from "lucide-react";
-import { useItems, type BaseBoardItem, type BoardItem } from "@/app/page";
+import { useItems, type BaseBoardItem, type BoardItem } from "./items";
 import { usePanOffset } from "./pan-container";
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 
-export default function HUD({
-  addItem,
-}: {
-  addItem: (type: BoardItem["type"], offset: BaseBoardItem["offset"]) => void;
-}) {
+export default function HUD() {
   const [isDeleting, setIsDeleting] = useState(false);
   const { setItems } = useItems();
   const offset = usePanOffset();
+
+  function addItem(type: BoardItem["type"], offset: BaseBoardItem["offset"]) {
+    const id = crypto.randomUUID();
+    let data: BoardItem;
+
+    switch (type) {
+      case "lined-paper":
+        data = {
+          id,
+          type: "lined-paper",
+          title: "",
+          content: "",
+          offset,
+          z: 0,
+        };
+        break;
+      case "sticky":
+        data = {
+          id,
+          type: "sticky",
+          content: "",
+          offset,
+          z: 0,
+        };
+        break;
+      case "still":
+        data = {
+          id,
+          type: "still",
+          title: "",
+          src: "https://placehold.co/384",
+          offset,
+          z: 0,
+        };
+        break;
+    }
+
+    setItems((prev) => {
+      const newItems = { ...prev };
+      newItems[id] = data as BoardItem;
+      const highest = Math.max(...Object.values(newItems).map((i) => i.z));
+      newItems[id].z = highest > 0 || highest === 0 ? highest + 1 : 0;
+      return newItems;
+    });
+  }
 
   useEffect(() => {
     function handleDeleteClick(e: MouseEvent) {
@@ -31,9 +72,9 @@ export default function HUD({
       }
       if (id) {
         setItems((prev) => {
-          const newNotes = { ...prev };
-          delete newNotes[id];
-          return newNotes;
+          const newItems = { ...prev };
+          delete newItems[id];
+          return newItems;
         });
       }
     }

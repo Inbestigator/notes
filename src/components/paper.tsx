@@ -1,9 +1,11 @@
 "use client";
-import type { Still, LinedPaper } from "@/app/page";
+
+import type { Still, LinedPaper } from "./items";
 import { cn } from "@/lib/utils";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
 import ItemWrapper from "./item-wrapper";
+import NextImage from "next/image";
 
 export default function Sheet({
   id,
@@ -90,6 +92,12 @@ export function LinedPaper({
   );
 }
 
+interface ImageData {
+  type: string;
+  name: string;
+  src: string;
+}
+
 export function Still({
   id,
   item,
@@ -99,6 +107,7 @@ export function Still({
   item: Still;
   placeholderTitle?: string;
 }) {
+  const [imageData, setImageData] = useState<ImageData | null>(null);
   const debouncedTitle = useDebouncedCallback((title) => {
     window.dispatchEvent(
       new CustomEvent("itemUpdate", {
@@ -107,9 +116,97 @@ export function Still({
     );
   }, 150);
 
+  useEffect(() => {
+    async function fetchImage() {
+      const db = await openFileDB();
+      const storedImage = await new Promise<ImageData>((resolve, reject) => {
+        const transaction = db.transaction("images", "readonly");
+        const store = transaction.objectStore("images");
+        const request = store.get(item.src);
+
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+
+      if (storedImage) {
+        setImageData(storedImage);
+      }
+    }
+
+    fetchImage();
+  }, [item.src]);
+
   return (
     <Sheet id={id} className="p-4">
-      <img src={item.src} alt={item.title} className="size-96 rounded-xs" />
+      <div
+        className="size-96 rounded-xs bg-neutral-800"
+        onDrop={async (e) => {
+          e.preventDefault();
+          const file = e.dataTransfer?.files[0];
+          if (file && file.type.startsWith("image/")) {
+            const img = new Image();
+            const reader = new FileReader();
+
+            reader.onload = async () => {
+              if (typeof reader.result === "string") {
+                img.onload = async () => {
+                  const canvas = document.createElement("canvas");
+                  const ctx = canvas.getContext("2d");
+                  if (!ctx) return;
+
+                  const maxSize = 768;
+                  let { width, height } = img;
+                  if (width > height) {
+                    if (width > maxSize) {
+                      height = (height * maxSize) / width;
+                      width = maxSize;
+                    }
+                  } else {
+                    if (height > maxSize) {
+                      width = (width * maxSize) / height;
+                      height = maxSize;
+                    }
+                  }
+
+                  canvas.width = width;
+                  canvas.height = height;
+                  ctx.drawImage(img, 0, 0, width, height);
+
+                  const base64 = canvas.toDataURL(file.type);
+                  const uuid = crypto.randomUUID();
+
+                  const db = await openFileDB();
+                  db.transaction("images", "readwrite")
+                    .objectStore("images")
+                    .put(
+                      { type: file.type, src: base64, name: file.name },
+                      `file-${uuid}`,
+                    );
+
+                  window.dispatchEvent(
+                    new CustomEvent("itemUpdate", {
+                      detail: { id, partial: { src: `file-${uuid}` } },
+                    }),
+                  );
+                };
+                img.src = reader.result;
+              }
+            };
+            reader.readAsDataURL(file);
+          }
+        }}
+        onDragOver={(e) => e.preventDefault()}
+      >
+        {imageData && (
+          <NextImage
+            src={imageData.src}
+            alt={imageData.name ?? item.title}
+            width={384}
+            height={384}
+            className="size-96 object-contain"
+          />
+        )}
+      </div>
       <input
         type="text"
         className="mt-4 w-full text-xl font-medium outline-none"
@@ -119,4 +216,18 @@ export function Still({
       />
     </Sheet>
   );
+}
+
+async function openFileDB() {
+  return new Promise<IDBDatabase>((resolve, reject) => {
+    const request = indexedDB.open("files", 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains("images")) {
+        db.createObjectStore("images");
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
 }

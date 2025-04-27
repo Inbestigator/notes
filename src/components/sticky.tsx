@@ -1,5 +1,6 @@
 "use client";
-import type { StickyNote } from "@/app/page";
+
+import type { StickyNote } from "./items";
 import { cn } from "@/lib/utils";
 import { memo, useEffect, useRef } from "react";
 import { useDebouncedCallback } from "use-debounce";
