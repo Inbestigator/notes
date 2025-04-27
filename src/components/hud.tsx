@@ -1,61 +1,47 @@
 "use client";
 
-import {
-  ImageIcon,
-  NotebookText,
-  Shredder,
-  StickyNoteIcon,
-} from "lucide-react";
-import { useItems, type BaseBoardItem, type BoardItem } from "./items";
+import { Shredder } from "lucide-react";
+import { useItems } from "./items";
 import { usePanOffset } from "./pan-container";
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { openFileDB } from "@/lib/db";
+import plugins from "@/plugins";
+import { useSearchParams } from "next/navigation";
 
 export default function HUD() {
   const [isDeleting, setIsDeleting] = useState(false);
   const { setItems } = useItems();
+  const searchParams = useSearchParams();
   const offset = usePanOffset();
 
-  function addItem(type: BoardItem["type"], offset: BaseBoardItem["offset"]) {
+  function addItem(type: string, variant: number) {
     const id = crypto.randomUUID();
-    let data: BoardItem;
+    const plugin = plugins.find((p) => p.name === type);
+    const defaultProps =
+      typeof plugin?.defaultProps === "function"
+        ? plugin.defaultProps(variant)
+        : plugin?.defaultProps;
 
-    switch (type) {
-      case "lined-paper":
-        data = {
-          id,
-          type: "lined-paper",
-          title: "",
-          content: "",
-          offset,
-          z: 0,
-        };
-        break;
-      case "sticky":
-        data = {
-          id,
-          type: "sticky",
-          content: "",
-          offset,
-          z: 0,
-        };
-        break;
-      case "still":
-        data = {
-          id,
-          type: "still",
-          title: "",
-          src: "https://placehold.co/384",
-          offset,
-          z: 0,
-        };
-        break;
-    }
+    if (!plugin) return;
 
     setItems((prev) => {
       const newItems = { ...prev };
-      newItems[id] = data as BoardItem;
+      newItems[id] = {
+        id,
+        type,
+        offset: {
+          x:
+            window.innerWidth - (plugin.dimensions?.width ?? 0) - 52 - offset.x,
+          y:
+            window.innerHeight / 2 -
+            (plugin.dimensions?.height ?? 0) / 2 -
+            offset.y,
+        },
+        z: 0,
+        variant,
+        ...defaultProps,
+      };
       const highest = Math.max(...Object.values(newItems).map((i) => i.z));
       newItems[id].z = highest > 0 || highest === 0 ? highest + 1 : 0;
       return newItems;
@@ -81,8 +67,13 @@ export default function HUD() {
             const tx = db.transaction(store, "readwrite");
             await tx.store.delete(src);
           }
-          if ("src" in item && item.src.startsWith("upload:"))
+          if (
+            "src" in item &&
+            typeof item.src === "string" &&
+            item.src.startsWith("upload:")
+          ) {
             deleteImage(item.src);
+          }
           delete newItems[id];
           return newItems;
         });
@@ -99,13 +90,41 @@ export default function HUD() {
     };
   }, [isDeleting, setItems]);
 
+  function PluginButton({ plugin }: { plugin: (typeof plugins)[number] }) {
+    const [variant, setVariant] = useState(1);
+
+    if (!plugin.HudComponent) return null;
+
+    return (
+      <button
+        key={plugin.name}
+        title={`New ${plugin.displayName ?? plugin.name}`}
+        className="hover:bg-foreground/10 flex items-center justify-center rounded-lg p-2 transition-all"
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setVariant((prev) => (prev % (plugin.numVariants ?? 1)) + 1);
+        }}
+        onClick={() => addItem(plugin.name, variant)}
+        data-pannable
+      >
+        <plugin.HudComponent variant={variant} />
+      </button>
+    );
+  }
+
+  if (searchParams.has("!hud")) {
+    return null;
+  }
+
   return (
     <>
       <div
-        data-visible={offset.x === 0 && offset.y === 0}
-        className="bg-background/50 absolute top-2 left-1/2 -translate-x-1/2 cursor-default rounded-full p-2 text-sm text-nowrap backdrop-blur-3xl transition-all data-[visible=false]:pointer-events-none data-[visible=false]:opacity-0"
+        data-visible={offset.x === 0 && offset.y === 0 && !isDeleting}
+        className="bg-background/50 absolute top-2 left-1/2 -translate-x-1/2 cursor-default rounded-full p-2 text-center text-sm text-nowrap backdrop-blur-3xl transition-all data-[visible=false]:pointer-events-none data-[visible=false]:opacity-0"
       >
         Scroll on the trackpad or drag while middle-clicking to pan
+        <br />
+        Double-click an item to bring it to the front
       </div>
       <div
         data-visible={isDeleting}
@@ -113,7 +132,7 @@ export default function HUD() {
           transform: `translate(${-offset.x}px, ${-offset.y}px)`,
           willChange: "transform",
         }}
-        className="bg-background/50 absolute top-2 left-1/2 -translate-x-1/2 cursor-default rounded-full p-2 text-sm text-nowrap shadow-sm backdrop-blur-3xl transition-opacity data-[visible=false]:pointer-events-none data-[visible=false]:opacity-0"
+        className="bg-background/50 absolute top-2 left-1/2 -translate-x-1/2 cursor-default rounded-full p-2 text-center text-sm text-nowrap shadow-sm backdrop-blur-3xl transition-opacity data-[visible=false]:pointer-events-none data-[visible=false]:opacity-0"
       >
         Click an item to delete it, or click the delete button again to cancel
       </div>
@@ -140,45 +159,11 @@ export default function HUD() {
         className="bg-background/50 absolute top-1/2 right-2 flex -translate-y-1/2 flex-col overflow-hidden rounded-full shadow-sm backdrop-blur-3xl"
         data-pannable
       >
-        <button
-          title="New sticky note"
-          className="hover:bg-foreground/10 flex items-center justify-center rounded-lg p-2 transition-all"
-          onClick={(e) =>
-            addItem("sticky", {
-              x: e.clientX - offset.x - 280,
-              y: e.clientY - offset.y - 105.25,
-            })
-          }
-          data-pannable
-        >
-          <StickyNoteIcon className="size-5" />
-        </button>
-        <button
-          title="New lined paper"
-          className="hover:bg-foreground/10 flex items-center justify-center rounded-lg p-2 transition-all"
-          onClick={(e) =>
-            addItem("lined-paper", {
-              x: e.clientX - offset.x - 632,
-              y: e.clientY - offset.y - 340,
-            })
-          }
-          data-pannable
-        >
-          <NotebookText className="size-5" />
-        </button>
-        <button
-          title="New image"
-          className="hover:bg-foreground/10 flex items-center justify-center rounded-lg p-2 transition-all"
-          onClick={(e) =>
-            addItem("still", {
-              x: e.clientX - offset.x - 440,
-              y: e.clientY - offset.y - 230,
-            })
-          }
-          data-pannable
-        >
-          <ImageIcon className="size-5" />
-        </button>
+        {plugins
+          .filter((p) => p.isRequired || searchParams.has("p:" + p.name))
+          .map((plugin) => (
+            <PluginButton key={plugin.name} plugin={plugin} />
+          ))}
         <button
           title={isDeleting ? "Cancel" : "Delete"}
           data-active={isDeleting}

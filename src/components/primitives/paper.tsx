@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import ItemWrapper from "../item-wrapper";
+import { ClassValue } from "clsx";
 
 export default function Sheet({
   id,
@@ -8,7 +9,7 @@ export default function Sheet({
 }: {
   id: string;
   children: React.ReactNode;
-  className?: string;
+  className?: ClassValue;
 }) {
   return (
     <ItemWrapper

@@ -1,11 +1,20 @@
 "use client";
 
-import type { Still } from "../items";
+import type { BaseItem } from "../components/items";
 import { useEffect, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
 import NextImage from "next/image";
-import Sheet from "./paper";
+import Sheet from "../components/primitives/paper";
 import { openFileDB } from "@/lib/db";
+import { ImageIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import type { Plugin } from ".";
+
+interface Still extends BaseItem {
+  type: "still";
+  title: string;
+  src: string;
+}
 
 interface ImageData {
   type: string;
@@ -13,15 +22,19 @@ interface ImageData {
   src: string;
 }
 
-export default function Still({
-  id,
-  item,
-  placeholderTitle,
-}: {
-  id: string;
-  item: Still;
-  placeholderTitle?: string;
-}) {
+export default {
+  name: "still",
+  displayName: "Image",
+  isRequired: true,
+  defaultProps: { title: "", src: "" },
+  dimensions: { width: 416, height: 460 },
+  HudComponent: ({ variant }) => (
+    <ImageIcon className={cn("size-5", variant === 2 && "fill-red-300")} />
+  ),
+  RenderedComponent,
+} as Plugin<Still>;
+
+function RenderedComponent({ id, item }: { id: string; item: Still }) {
   const [imageData, setImageData] = useState<ImageData | null>(null);
   const debouncedTitle = useDebouncedCallback((title) => {
     window.dispatchEvent(
@@ -138,7 +151,9 @@ export default function Still({
       <input
         type="text"
         className="mt-4 w-full text-xl font-medium outline-none"
-        placeholder={placeholderTitle ?? imageData?.name ?? "A photo of..."}
+        placeholder={
+          imageData?.name ? `A photo of ${imageData.name}` : "A photo of..."
+        }
         onChange={(e) => debouncedTitle(e.target.value)}
         defaultValue={item.title}
       />

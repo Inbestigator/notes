@@ -1,21 +1,29 @@
 "use client";
 
-import type { LinedPaper } from "../items";
+import type { BaseItem } from "@/components/items";
+import { NotebookText } from "lucide-react";
+import type { Plugin } from ".";
+import Sheet from "@/components/primitives/paper";
 import { useRef } from "react";
 import { useDebouncedCallback } from "use-debounce";
-import Sheet from "./paper";
 
-export default function LinedPaper({
-  id,
-  item,
-  placeholderTitle,
-  placeholderContent,
-}: {
-  id: string;
-  item: LinedPaper;
-  placeholderTitle?: string;
-  placeholderContent?: string;
-}) {
+interface LinedPaper extends BaseItem {
+  type: "lined-paper";
+  title: string;
+  content: string;
+}
+
+export default {
+  name: "lined-paper",
+  displayName: "Lined Paper",
+  isRequired: true,
+  defaultProps: { title: "", content: "" },
+  dimensions: { width: 608, height: 680 },
+  HudComponent: () => <NotebookText className="size-5" />,
+  RenderedComponent,
+} as Plugin<LinedPaper>;
+
+function RenderedComponent({ id, item }: { id: string; item: LinedPaper }) {
   const debouncedDetails = useDebouncedCallback((title, content) => {
     window.dispatchEvent(
       new CustomEvent("itemUpdate", {
@@ -31,7 +39,6 @@ export default function LinedPaper({
         <input
           type="text"
           className="sticky -top-2 z-10 mb-2 w-full border-b border-red-400 bg-neutral-50 text-xl font-medium outline-none"
-          placeholder={placeholderTitle}
           onChange={(e) => debouncedDetails(e.target.value, item.content)}
           defaultValue={item.title}
         />
@@ -47,7 +54,6 @@ export default function LinedPaper({
           />
           <textarea
             className="min-h-150 w-full resize-none outline-none"
-            placeholder={placeholderContent}
             style={{
               backgroundPositionY: "calc(1lh - 2px)",
               backgroundSize: "100% 1lh",

@@ -1,6 +1,7 @@
 import { useItems } from "./items";
 import useDrag from "@/lib/hooks/drag";
 import { cn } from "@/lib/utils";
+import { ClassValue } from "clsx";
 import { memo } from "react";
 
 const ItemWrapper = memo(function ItemWrapper({
@@ -12,7 +13,7 @@ const ItemWrapper = memo(function ItemWrapper({
   id: string;
   children: React.ReactNode;
   className?: string;
-  tabClassName?: string;
+  tabClassName?: ClassValue;
 }) {
   const { items } = useItems();
   const { isDragging, localOffset, handleMouseDown } = useDrag(

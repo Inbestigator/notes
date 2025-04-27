@@ -1,42 +1,22 @@
 "use client";
 
 import { useContext, createContext, useState, useEffect } from "react";
-import { TextSticky } from "./items/sticky";
-import LinedPaper from "./items/lined-paper";
-import Still from "./items/still";
 import { useSearchParams } from "next/navigation";
 import { nanoid } from "nanoid";
+import plugins from "@/plugins";
 
-export interface BaseBoardItem {
+export interface BaseItem {
   id: string;
+  type: string;
   offset: { x: number; y: number };
   z: number;
+  variant: number;
 }
 
-export interface StickyNote extends BaseBoardItem {
-  type: "sticky";
-  content: string;
-  width?: number;
-}
-
-export interface LinedPaper extends BaseBoardItem {
-  type: "lined-paper";
-  title: string;
-  content: string;
-}
-
-export interface Still extends BaseBoardItem {
-  type: "still";
-  title: string;
-  src: string;
-}
-
-export type BoardItem = StickyNote | LinedPaper | Still;
-
-const ItemContext = createContext(
+export const ItemContext = createContext(
   {} as {
-    items: Record<string, BoardItem>;
-    setItems: React.Dispatch<React.SetStateAction<Record<string, BoardItem>>>;
+    items: Record<string, BaseItem>;
+    setItems: React.Dispatch<React.SetStateAction<Record<string, BaseItem>>>;
   },
 );
 
@@ -44,80 +24,90 @@ export function useItems() {
   return useContext(ItemContext);
 }
 
-// const id1 = "951316f9-5824-42c9-908f-06547d43c3c1";
-// const id2 = "441a2af4-3607-47b9-9028-533ba69473a3";
-// const id3 = "ccf83191-f5ef-4116-b067-bc2247b54daa";
-// const id4 = "40c3b6f8-7a8b-4462-b135-02fa14d5bdb5";
-
-// const placeholders = {
-//   [id1]: {
-//     id: id1,
-//     type: "sticky",
-//     content:
-//       "Josephine was so cute when she was a puppy!\n\nShe's already 16 now!",
-//     offset: { x: 1153, y: 413 },
-//     z: 1,
-//   },
-//   [id2]: {
-//     id: id2,
-//     type: "sticky",
-//     content:
-//       "Golden Retriever puppies are some of the fuzziest, softest little creatures you'll ever meet. When they're young, their fur is extra fluffy, like a warm, golden cloud you can't help but cuddle. Every hug feels like wrapping yourself in pure happiness. Their fuzzy coats, paired with their playful energy and innocent eyes, make Golden Retriever puppies absolutely irresistible. It's no wonder they steal hearts from the moment you meet them.",
-//     offset: { x: 772, y: 661 },
-//     width: 512,
-//     z: 0,
-//   },
-//   [id3]: {
-//     id: id3,
-//     type: "lined-paper",
-//     title: "Josephine is the Best!",
-//     content:
-//       "My dog, Josephine, is a Golden Retriever, a breed known for their kindness, intelligence, and loyalty. From the moment she came into my life, she brought a special kind of warmth that is hard to put into words. Golden Retrievers are famous for their gentle nature, and Josephine is no exception — she is always ready to offer a wagging tail, a loving nudge, or a playful bark to lift the spirits of anyone around her. Her golden coat and bright eyes reflect the sunshine she brings into every room she enters.\n\nDogs, and especially Golden Retrievers like Josephine, are incredibly emotional creatures. They can sense when we are sad, anxious, or joyful, and they respond in ways that feel almost human. Josephine has an amazing ability to comfort me without saying a word, just by sitting close or resting her head in my lap. Science shows that dogs can lower stress and help with emotional healing, but Josephine proves it every day just by being herself. Her quiet loyalty and big heart have helped me through more than she’ll ever know.\n\nBeyond emotional support, dogs are also incredibly helpful in everyday life. They encourage us to stay active, teach us responsibility, and remind us to find joy in the little things — like a game of fetch or a walk through the park. Josephine is more than just a pet; she’s a best friend, a teacher, and a constant source of unconditional love. She reminds me daily that no matter what challenges I face, there’s always happiness to be found with her by my side.",
-//     offset: {
-//       x: 122,
-//       y: 108,
-//     },
-//     z: 0,
-//   },
-//   [id4]: {
-//     id: id4,
-//     type: "still",
-//     title: "Josephine, June 2009",
-//     src: "https://hips.hearstapps.com/hmg-prod/images/dog-puppy-on-garden-royalty-free-image-1586966191.jpg?crop=0.752xw:1.00xh;0.175xw,0&resize=1200:*",
-//     offset: { x: 844, y: 42 },
-//     z: 0,
-//   },
-// };
+export interface Project {
+  id: string;
+  title?: string;
+  plugins: string[];
+  items: Record<string, BaseItem>;
+}
 
 export default function Items({ children }: { children?: React.ReactNode }) {
-  const [items, setItems] = useState<Record<string, BoardItem>>({});
+  const [projectData, setProjectData] = useState({} as Project);
+  const [items, setItems] = useState({} as Project["items"]);
   const searchParams = useSearchParams();
-  const projectId = searchParams.get("p");
+  const projectId = searchParams.get("i");
 
   useEffect(() => {
     if (!projectId) {
       const params = new URLSearchParams(searchParams.toString());
-      params.set("p", nanoid(7));
+      params.set("i", nanoid(7));
       window.history.replaceState(null, "", `?${params.toString()}`);
       return;
     }
 
-    const storedItems = localStorage.getItem(`items-${projectId}`);
-    if (storedItems) {
-      setItems(JSON.parse(storedItems));
+    const storedProject = localStorage.getItem(`project-${projectId}`);
+    if (storedProject) {
+      const parsedProject = JSON.parse(storedProject) as Project;
+      setProjectData(parsedProject);
+      setItems(parsedProject.items);
+    } else if (projectId === "pick") {
+      const projects = Object.keys(localStorage).filter((k) =>
+        k.startsWith("project-"),
+      );
+      setProjectData({
+        id: projectId,
+        title: "Pick a project",
+        plugins: ["iframe"],
+        items: {},
+      });
+      setItems(
+        Object.fromEntries(
+          projects.map((p) => {
+            const project = JSON.parse(
+              localStorage.getItem(p) ?? "",
+            ) as Project;
+            return [
+              p,
+              {
+                id: p,
+                type: "project-window",
+                offset: { x: 0, y: 0 },
+                z: 0,
+                variant: 0,
+                project,
+              },
+            ];
+          }),
+        ),
+      );
     }
   }, [projectId, searchParams]);
 
   useEffect(() => {
-    if (!projectId) return;
-    localStorage.setItem(`items-${projectId}`, JSON.stringify(items));
-  }, [items, projectId, searchParams]);
+    if (
+      !projectId ||
+      (!Object.keys(items).length &&
+        !projectData.title &&
+        !localStorage.getItem(`project-${projectId}`)) ||
+      projectId === "pick"
+    )
+      return;
+    localStorage.setItem(
+      `project-${projectId}`,
+      JSON.stringify({
+        id: projectId,
+        title: projectData.title,
+        plugins: Object.values(items).map((i) => i.type),
+        items,
+      }),
+    );
+  }, [projectData, items, projectId, searchParams]);
 
   function updateItem(
     id: string,
     item:
-      | Partial<BoardItem>
-      | ((prev: Record<string, BoardItem>) => Partial<BoardItem>),
+      | Partial<BaseItem>
+      | ((prev: Record<string, BaseItem>) => Partial<BaseItem>),
   ) {
     setItems((prev) => {
       const newItems = { ...prev };
@@ -127,7 +117,7 @@ export default function Items({ children }: { children?: React.ReactNode }) {
       newItems[id] = {
         ...newItems[id],
         ...item,
-      } as BoardItem;
+      };
       return newItems;
     });
   }
@@ -160,21 +150,22 @@ export default function Items({ children }: { children?: React.ReactNode }) {
     <ItemContext.Provider value={{ items, setItems }}>
       {Object.values(items)
         .sort((a, b) => a.z - b.z)
-        .map((note) => (
-          <div
-            id={note.id}
-            key={note.id}
-            onDoubleClick={() => handleBringToFront(note.id, note.z)}
-          >
-            {note.type === "sticky" ? (
-              <TextSticky id={note.id} item={note} />
-            ) : note.type === "lined-paper" ? (
-              <LinedPaper id={note.id} item={note} />
-            ) : note.type === "still" ? (
-              <Still id={note.id} item={note} />
-            ) : null}
-          </div>
-        ))}
+        .map((item) => {
+          const plugin = plugins
+            .filter((p) => p.isRequired || searchParams.has("p:" + p.name))
+            .find((p) => p.name === item.type);
+          if (!plugin) return null;
+
+          return (
+            <div
+              id={item.id}
+              key={item.id}
+              onDoubleClick={() => handleBringToFront(item.id, item.z)}
+            >
+              <plugin.RenderedComponent id={item.id} item={item as never} />
+            </div>
+          );
+        })}
       {children}
     </ItemContext.Provider>
   );
