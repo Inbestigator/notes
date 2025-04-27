@@ -1,32 +1,52 @@
 "use client";
 
-import { Image, NotebookText, StickyNoteIcon, Trash } from "lucide-react";
-import type { BaseBoardItem, BoardItem } from "@/app/page";
+import {
+  ImageIcon,
+  NotebookText,
+  Shredder,
+  StickyNoteIcon,
+} from "lucide-react";
+import { useItems, type BaseBoardItem, type BoardItem } from "@/app/page";
 import { usePanOffset } from "./pan-container";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { motion } from "motion/react";
 
 export default function HUD({
   addItem,
-  removeItem,
 }: {
   addItem: (type: BoardItem["type"], offset: BaseBoardItem["offset"]) => void;
-  removeItem: (id: string) => void;
 }) {
   const [isDeleting, setIsDeleting] = useState(false);
+  const { setItems } = useItems();
   const offset = usePanOffset();
 
-  function handleDeleteClick(e: MouseEvent) {
-    let target = e.target as HTMLDivElement;
-    let id;
-    while (target && !id) {
-      id = target.getAttribute("id");
-      target = target.parentElement as HTMLDivElement;
+  useEffect(() => {
+    function handleDeleteClick(e: MouseEvent) {
+      e.preventDefault();
+      let target = e.target as HTMLDivElement;
+      let id;
+      while (target && !id) {
+        id = target.getAttribute("id");
+        target = target.parentElement as HTMLDivElement;
+      }
+      if (id) {
+        setItems((prev) => {
+          const newNotes = { ...prev };
+          delete newNotes[id];
+          return newNotes;
+        });
+      }
     }
-    if (id) removeItem(id);
-    setIsDeleting(false);
-    window.document.body.style.cursor = "";
-    window.removeEventListener("click", handleDeleteClick);
-  }
+
+    if (isDeleting) {
+      document.addEventListener("click", handleDeleteClick);
+    } else {
+      document.removeEventListener("click", handleDeleteClick);
+    }
+    return () => {
+      document.removeEventListener("click", handleDeleteClick);
+    };
+  }, [isDeleting, setItems]);
 
   return (
     <>
@@ -46,6 +66,21 @@ export default function HUD({
       >
         Click an item to delete it, or click the delete button again to cancel
       </div>
+      <motion.div
+        data-pannable
+        data-visible={isDeleting}
+        style={{
+          transform: `translate(${-offset.x}px, ${-offset.y}px)`,
+          willChange: "transform",
+        }}
+        initial={false}
+        animate={{
+          backgroundImage: isDeleting
+            ? "radial-gradient(ellipse, transparent 80%, oklch(70.4% 0.191 22.216) 100%)"
+            : "radial-gradient(ellipse, transparent 100%, oklch(93.6% 0.032 17.717) 100%)",
+        }}
+        className="pointer-events-none absolute h-dvh w-dvw opacity-60"
+      />
       <nav
         style={{
           transform: `translate(${-offset.x}px, ${-offset.y}px)`,
@@ -55,6 +90,7 @@ export default function HUD({
         data-pannable
       >
         <button
+          title="New sticky note"
           className="hover:bg-foreground/10 flex items-center justify-center rounded-lg p-2 transition-all"
           onClick={(e) =>
             addItem("sticky", {
@@ -67,6 +103,7 @@ export default function HUD({
           <StickyNoteIcon className="size-5" />
         </button>
         <button
+          title="New lined paper"
           className="hover:bg-foreground/10 flex items-center justify-center rounded-lg p-2 transition-all"
           onClick={(e) =>
             addItem("lined-paper", {
@@ -79,6 +116,7 @@ export default function HUD({
           <NotebookText className="size-5" />
         </button>
         <button
+          title="New image"
           className="hover:bg-foreground/10 flex items-center justify-center rounded-lg p-2 transition-all"
           onClick={(e) =>
             addItem("still", {
@@ -88,27 +126,15 @@ export default function HUD({
           }
           data-pannable
         >
-          {/* eslint-disable-next-line jsx-a11y/alt-text */}
-          <Image className="size-5" />
+          <ImageIcon className="size-5" />
         </button>
         <button
+          title={isDeleting ? "Cancel" : "Delete"}
           className="hover:bg-foreground/10 hover:text-destructive flex items-center justify-center rounded-lg p-2 transition-all"
-          onClick={() => {
-            if (isDeleting) {
-              setIsDeleting(false);
-              window.document.body.style.cursor = "";
-              window.removeEventListener("click", handleDeleteClick);
-              return;
-            }
-            setIsDeleting(true);
-            setTimeout(
-              () => window.addEventListener("click", handleDeleteClick),
-              150,
-            );
-          }}
+          onClick={() => setIsDeleting(!isDeleting)}
           data-pannable
         >
-          <Trash className="size-5" />
+          <Shredder className="size-5" />
         </button>
       </nav>
     </>

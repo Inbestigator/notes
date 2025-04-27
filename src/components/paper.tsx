@@ -1,38 +1,27 @@
 "use client";
-import type { Still, BaseBoardItem, LinedPaper } from "@/app/page";
+import type { Still, LinedPaper } from "@/app/page";
 import { cn } from "@/lib/utils";
-import useDrag from "@/lib/hooks/drag";
 import { useRef } from "react";
 import { useDebouncedCallback } from "use-debounce";
+import ItemWrapper from "./item-wrapper";
 
 export default function Sheet({
   id,
   children,
   className,
-  offset = { x: 0, y: 0 },
 }: {
   id: string;
   children: React.ReactNode;
   className?: string;
-  offset?: BaseBoardItem["offset"];
 }) {
-  const { isDragging, localOffset, handleMouseDown } = useDrag(id, offset);
-
   return (
-    <div
-      style={{ transform: `translate(${localOffset.x}px, ${localOffset.y}px)` }}
-      className={cn(
-        "group absolute min-h-96 cursor-default overflow-hidden rounded-sm bg-neutral-50 text-gray-800 shadow-lg transition-none duration-300 ease-in-out [transition:border-radius_150ms_cubic-bezier(0.4,0,0.2,1)] hover:rounded-br-4xl",
-        isDragging && "pointer-events-none opacity-90 select-none",
-        className,
-      )}
+    <ItemWrapper
+      id={id}
+      tabClassName="bg-neutral-200"
+      className={cn("bg-neutral-50 text-gray-800", className)}
     >
       {children}
-      <div
-        onMouseDown={handleMouseDown}
-        className="pointer-events-auto absolute right-0 bottom-0 z-10 size-6 translate-full cursor-grab rounded-tl-sm bg-neutral-200 shadow-md transition-all duration-300 ease-in-out group-hover:translate-0 group-hover:-skew-6 hover:not-active:size-7 hover:not-active:-skew-3 active:cursor-grabbing"
-      />
-    </div>
+    </ItemWrapper>
   );
 }
 
@@ -57,7 +46,7 @@ export function LinedPaper({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   return (
-    <Sheet id={id} offset={item.offset}>
+    <Sheet id={id}>
       <article className="inset-0 m-4 mt-6 h-160 w-xl overflow-scroll">
         <input
           type="text"
@@ -119,7 +108,7 @@ export function Still({
   }, 150);
 
   return (
-    <Sheet id={id} className="p-4" offset={item.offset}>
+    <Sheet id={id} className="p-4">
       <img src={item.src} alt={item.title} className="size-96 rounded-xs" />
       <input
         type="text"

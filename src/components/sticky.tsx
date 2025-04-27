@@ -1,40 +1,27 @@
 "use client";
-import type { StickyNote, BaseBoardItem } from "@/app/page";
+import type { StickyNote } from "@/app/page";
 import { cn } from "@/lib/utils";
 import { memo, useEffect, useRef } from "react";
-import useDrag from "@/lib/hooks/drag";
 import { useDebouncedCallback } from "use-debounce";
+import ItemWrapper from "./item-wrapper";
 
 const StickyNote = memo(function StickyNote({
   id,
   children,
   className,
-  offset = { x: 0, y: 0 },
 }: {
   id: string;
   children: React.ReactNode;
   className?: string;
-  offset?: BaseBoardItem["offset"];
 }) {
-  const { isDragging, localOffset, handleMouseDown } = useDrag(id, offset);
-
   return (
-    <div
-      style={{
-        transform: `translate(${localOffset.x}px, ${localOffset.y}px)`,
-      }}
-      className={cn(
-        "group absolute min-h-52 cursor-default overflow-hidden rounded-sm bg-yellow-200 p-4 text-gray-800 shadow-lg transition-none duration-300 ease-in-out [transition:border-radius_150ms_cubic-bezier(0.4,0,0.2,1)] hover:rounded-br-4xl",
-        isDragging && "pointer-events-none opacity-90",
-        className,
-      )}
+    <ItemWrapper
+      id={id}
+      tabClassName="bg-yellow-300"
+      className={cn("bg-yellow-200 text-gray-800", className)}
     >
       {children}
-      <div
-        onMouseDown={handleMouseDown}
-        className="pointer-events-auto absolute right-0 bottom-0 z-10 size-6 translate-full cursor-grab rounded-tl-sm bg-yellow-300 shadow-md transition-all duration-300 ease-in-out group-hover:translate-0 group-hover:-skew-6 hover:not-active:size-7 hover:not-active:-skew-3 active:cursor-grabbing"
-      />
-    </div>
+    </ItemWrapper>
   );
 });
 
@@ -77,11 +64,10 @@ export function TextSticky({
       calcHeight();
       debouncedResize(textareaRef.current.offsetWidth);
     }).observe(textareaRef.current!);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [debouncedResize]);
 
   return (
-    <StickyNote id={id} offset={item.offset}>
+    <StickyNote id={id}>
       <textarea
         className="max-h-96 min-h-44 min-w-56 resize-none outline-none hover:resize-x"
         placeholder={placeholder ?? "New sticky note..."}

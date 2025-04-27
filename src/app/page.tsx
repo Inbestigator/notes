@@ -3,7 +3,7 @@
 import PanContainer from "@/components/pan-container";
 import { LinedPaper, Still } from "@/components/paper";
 import { TextSticky } from "@/components/sticky";
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import HUD from "@/components/hud";
 
 export interface BaseBoardItem {
@@ -32,13 +32,24 @@ export interface Still extends BaseBoardItem {
 
 export type BoardItem = StickyNote | LinedPaper | Still;
 
+const ItemContext = createContext(
+  {} as {
+    items: Record<string, BoardItem>;
+    setItems: React.Dispatch<React.SetStateAction<Record<string, BoardItem>>>;
+  },
+);
+
+export function useItems() {
+  return useContext(ItemContext);
+}
+
 export default function Home() {
   const id1 = "951316f9-5824-42c9-908f-06547d43c3c1";
   const id2 = "441a2af4-3607-47b9-9028-533ba69473a3";
   const id3 = "ccf83191-f5ef-4116-b067-bc2247b54daa";
   const id4 = "40c3b6f8-7a8b-4462-b135-02fa14d5bdb5";
 
-  const [notes, setNotes] = useState<Record<string, BoardItem>>({
+  const [items, setItems] = useState<Record<string, BoardItem>>({
     [id1]: {
       id: id1,
       type: "sticky",
@@ -78,13 +89,42 @@ export default function Home() {
     },
   });
 
+  useEffect(() => {
+    const openRequest = indexedDB.open("NotesDatabase", 1);
+
+    openRequest.onupgradeneeded = () => {
+      const db = openRequest.result;
+      if (!db.objectStoreNames.contains("items")) {
+        db.createObjectStore("items", { keyPath: "id" });
+      }
+    };
+
+    openRequest.onsuccess = () => {
+      const db = openRequest.result;
+      const transaction = db.transaction("items", "readwrite");
+      const store = transaction.objectStore("items");
+
+      Object.values(items).forEach((note) => {
+        store.put(note);
+      });
+
+      transaction.oncomplete = () => {
+        console.log("Items saved to IndexedDB successfully.");
+      };
+    };
+
+    openRequest.onerror = () => {
+      console.error("Error opening database:", openRequest.error);
+    };
+  }, [items]);
+
   function updateItem(
     id: string,
     item:
       | Partial<BoardItem>
       | ((prev: Record<string, BoardItem>) => Partial<BoardItem>),
   ) {
-    setNotes((prev) => {
+    setItems((prev) => {
       const newNotes = { ...prev };
       if (typeof item === "function") {
         item = item(newNotes);
@@ -140,14 +180,6 @@ export default function Home() {
     handleBringToFront(id, 0);
   }
 
-  function removeItem(id: string) {
-    setNotes((prev) => {
-      const newNotes = { ...prev };
-      delete newNotes[id];
-      return newNotes;
-    });
-  }
-
   useEffect(() => {
     const handleItemUpdate = (e: Event) => {
       if (e instanceof CustomEvent) {
@@ -164,25 +196,27 @@ export default function Home() {
   }, []);
 
   return (
-    <PanContainer>
-      {Object.values(notes)
-        .sort((a, b) => a.z - b.z)
-        .map((note) => (
-          <div
-            id={note.id}
-            key={note.id}
-            onDoubleClick={() => handleBringToFront(note.id, note.z)}
-          >
-            {note.type === "sticky" ? (
-              <TextSticky id={note.id} item={note} />
-            ) : note.type === "lined-paper" ? (
-              <LinedPaper id={note.id} item={note} />
-            ) : note.type === "still" ? (
-              <Still id={note.id} item={note} />
-            ) : null}
-          </div>
-        ))}
-      <HUD addItem={addItem} removeItem={removeItem} />
-    </PanContainer>
+    <ItemContext.Provider value={{ items, setItems }}>
+      <PanContainer>
+        {Object.values(items)
+          .sort((a, b) => a.z - b.z)
+          .map((note) => (
+            <div
+              id={note.id}
+              key={note.id}
+              onDoubleClick={() => handleBringToFront(note.id, note.z)}
+            >
+              {note.type === "sticky" ? (
+                <TextSticky id={note.id} item={note} />
+              ) : note.type === "lined-paper" ? (
+                <LinedPaper id={note.id} item={note} />
+              ) : note.type === "still" ? (
+                <Still id={note.id} item={note} />
+              ) : null}
+            </div>
+          ))}
+        <HUD addItem={addItem} />
+      </PanContainer>
+    </ItemContext.Provider>
   );
 }
