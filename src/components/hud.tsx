@@ -10,6 +10,7 @@ import { useItems, type BaseBoardItem, type BoardItem } from "./items";
 import { usePanOffset } from "./pan-container";
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
+import { openFileDB } from "@/lib/db";
 
 export default function HUD() {
   const [isDeleting, setIsDeleting] = useState(false);
@@ -73,6 +74,15 @@ export default function HUD() {
       if (id) {
         setItems((prev) => {
           const newItems = { ...prev };
+          const item = newItems[id];
+          async function deleteImage(src: string) {
+            const db = await openFileDB();
+            const store = src.split(":")[1];
+            const tx = db.transaction(store, "readwrite");
+            await tx.store.delete(src);
+          }
+          if ("src" in item && item.src.startsWith("upload:"))
+            deleteImage(item.src);
           delete newItems[id];
           return newItems;
         });
@@ -93,7 +103,7 @@ export default function HUD() {
     <>
       <div
         data-visible={offset.x === 0 && offset.y === 0}
-        className="bg-background/50 absolute top-2 left-1/2 -translate-x-1/2 cursor-default rounded-full p-2 text-sm backdrop-blur-3xl transition-all data-[visible=false]:pointer-events-none data-[visible=false]:opacity-0"
+        className="bg-background/50 absolute top-2 left-1/2 -translate-x-1/2 cursor-default rounded-full p-2 text-sm text-nowrap backdrop-blur-3xl transition-all data-[visible=false]:pointer-events-none data-[visible=false]:opacity-0"
       >
         Scroll on the trackpad or drag while middle-clicking to pan
       </div>
@@ -103,7 +113,7 @@ export default function HUD() {
           transform: `translate(${-offset.x}px, ${-offset.y}px)`,
           willChange: "transform",
         }}
-        className="bg-background/50 absolute top-2 left-1/2 -translate-x-1/2 cursor-default rounded-full p-2 text-sm shadow-sm backdrop-blur-3xl transition-opacity data-[visible=false]:pointer-events-none data-[visible=false]:opacity-0"
+        className="bg-background/50 absolute top-2 left-1/2 -translate-x-1/2 cursor-default rounded-full p-2 text-sm text-nowrap shadow-sm backdrop-blur-3xl transition-opacity data-[visible=false]:pointer-events-none data-[visible=false]:opacity-0"
       >
         Click an item to delete it, or click the delete button again to cancel
       </div>
@@ -161,8 +171,8 @@ export default function HUD() {
           className="hover:bg-foreground/10 flex items-center justify-center rounded-lg p-2 transition-all"
           onClick={(e) =>
             addItem("still", {
-              x: e.clientX - offset.x - 632,
-              y: e.clientY - offset.y - 340,
+              x: e.clientX - offset.x - 440,
+              y: e.clientY - offset.y - 230,
             })
           }
           data-pannable
@@ -171,7 +181,8 @@ export default function HUD() {
         </button>
         <button
           title={isDeleting ? "Cancel" : "Delete"}
-          className="hover:bg-foreground/10 hover:text-destructive flex items-center justify-center rounded-lg p-2 transition-all"
+          data-active={isDeleting}
+          className="hover:bg-foreground/10 hover:text-destructive data-[active=true]:text-destructive flex items-center justify-center rounded-lg p-2 transition-all"
           onClick={() => setIsDeleting(!isDeleting)}
           data-pannable
         >

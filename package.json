@@ -1,8 +1,8 @@
 {
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build",
-    "start": "next start",
+    "dev": "next dev --turbo",
+    "build": "next build --turbo",
+    "start": "next start --turbo",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
@@ -12,6 +12,7 @@
     "@radix-ui/react-slot": "^1.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "idb": "^8.0.2",
     "lucide-react": "^0.503.0",
     "motion": "^12.9.2",
     "nanoid": "^5.1.5",

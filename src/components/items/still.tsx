@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
 import NextImage from "next/image";
 import Sheet from "./paper";
+import { openFileDB } from "@/lib/db";
 
 interface ImageData {
   type: string;
@@ -33,14 +34,8 @@ export default function Still({
   useEffect(() => {
     async function fetchImage() {
       const db = await openFileDB();
-      const storedImage = await new Promise<ImageData>((resolve, reject) => {
-        const transaction = db.transaction("images", "readonly");
-        const store = transaction.objectStore("images");
-        const request = store.get(item.src);
-
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
+      const tx = db.transaction("images", "readonly");
+      const storedImage = await tx.store.get(item.src);
 
       if (storedImage) {
         setImageData(storedImage);
@@ -86,17 +81,20 @@ export default function Still({
             canvas.height = height;
             ctx.drawImage(img, 0, 0, width, height);
 
-            const base64 = canvas.toDataURL(mimeType);
-            const uuid = crypto.randomUUID();
+            const base64: string = canvas.toDataURL(mimeType);
+            const imgId = "upload:images:" + crypto.randomUUID();
 
             const db = await openFileDB();
-            db.transaction("images", "readwrite")
-              .objectStore("images")
-              .put({ type: mimeType, src: base64, name }, `file-${uuid}`);
+            const tx = db.transaction("images", "readwrite");
+
+            await Promise.all([
+              tx.store.add({ type: mimeType, src: base64, name }, imgId),
+              tx.store.delete(item.src),
+            ]);
 
             window.dispatchEvent(
               new CustomEvent("itemUpdate", {
-                detail: { id, partial: { src: `file-${uuid}` } },
+                detail: { id, partial: { src: imgId } },
               }),
             );
           }
@@ -146,18 +144,4 @@ export default function Still({
       />
     </Sheet>
   );
-}
-
-async function openFileDB() {
-  return new Promise<IDBDatabase>((resolve, reject) => {
-    const request = indexedDB.open("files", 1);
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains("images")) {
-        db.createObjectStore("images");
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
 }
