@@ -101,7 +101,7 @@ export default function Home() {
     updateItem(id, (n) => {
       const highest = Math.max(...Object.values(n).map((n) => n.z));
       return {
-        z: highest > currentZ ? highest + 1 : currentZ,
+        z: highest > currentZ && currentZ >= 0 ? highest + 1 : currentZ,
       };
     });
   }
