@@ -1,13 +1,16 @@
 import PanContainer from "@/components/pan-container";
 import HUD from "@/components/hud";
 import Items from "@/components/items";
+import { Suspense } from "react";
 
-export default async function Home() {
+export default function Home() {
   return (
     <PanContainer>
-      <Items>
-        <HUD />
-      </Items>
+      <Suspense>
+        <Items>
+          <HUD />
+        </Items>
+      </Suspense>
     </PanContainer>
   );
 }
