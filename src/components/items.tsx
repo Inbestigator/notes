@@ -1,8 +1,9 @@
 "use client";
 
 import { useContext, createContext, useState, useEffect } from "react";
-import { TextSticky } from "./sticky";
-import { LinedPaper, Still } from "./paper";
+import { TextSticky } from "./items/sticky";
+import LinedPaper from "./items/lined-paper";
+import Still from "./items/still";
 import { useSearchParams } from "next/navigation";
 import { nanoid } from "nanoid";
 

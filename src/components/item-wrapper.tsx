@@ -1,8 +1,9 @@
 import { useItems } from "./items";
 import useDrag from "@/lib/hooks/drag";
 import { cn } from "@/lib/utils";
+import { memo } from "react";
 
-export default function ItemWrapper({
+const ItemWrapper = memo(function ItemWrapper({
   id,
   children,
   className,
@@ -48,4 +49,6 @@ export default function ItemWrapper({
       />
     </div>
   );
-}
+});
+
+export default ItemWrapper;

@@ -1,12 +1,12 @@
 "use client";
 
-import type { StickyNote } from "./items";
+import type { StickyNote } from "../items";
 import { cn } from "@/lib/utils";
-import { memo, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useDebouncedCallback } from "use-debounce";
-import ItemWrapper from "./item-wrapper";
+import ItemWrapper from "../item-wrapper";
 
-const StickyNote = memo(function StickyNote({
+export default function StickyNote({
   id,
   children,
   className,
@@ -24,9 +24,7 @@ const StickyNote = memo(function StickyNote({
       {children}
     </ItemWrapper>
   );
-});
-
-export default StickyNote;
+}
 
 export function TextSticky({
   id,
