@@ -45,21 +45,13 @@ export default function ProjectProvider({
   const searchParams = useSearchParams();
   const projectId = currentProject?.id;
 
-  const changeProject = useCallback((id: string, newProject?: Project) => {
+  const changeProject = useCallback((id: string) => {
     const projects = Object.entries(localStorage)
       .filter(([key]) => key.startsWith("project-"))
       .map((e) => JSON.parse(e[1]) as Project)
       .sort((a, b) => b.lastModified - a.lastModified);
     let project = projects.find((p) => p.id === id) ?? null;
-    if (newProject) {
-      if (project) {
-        projects[projects.findIndex((p) => p.id === newProject.id)] =
-          newProject;
-      } else {
-        projects.push(newProject);
-      }
-      project = newProject;
-    } else if (!project) {
+    if (!project) {
       project = {
         id,
         lastModified: Date.now(),
@@ -78,13 +70,12 @@ export default function ProjectProvider({
     async function updateProject() {
       const searchId = searchParams.get("i");
       const externalDownload = searchParams.get("e");
-      let downloadedProject: Project | undefined = undefined;
 
       if (externalDownload) {
         const res = await fetch(externalDownload);
         const json = await res.json();
         if (json.type === "organote") {
-          downloadedProject = json.project as Project;
+          const downloadedProject = json.project as Project;
           if (json.version === 2) {
             const db = await openFileDB();
             const files: Record<string, Record<string, unknown>> = json.files;
@@ -95,10 +86,14 @@ export default function ProjectProvider({
               }
             }
           }
+          localStorage.setItem(
+            `project-${downloadedProject.id}`,
+            JSON.stringify(downloadedProject),
+          );
           window.history.replaceState(
             null,
             "",
-            `?i=${searchId}${downloadedProject.plugins.map((p: string) => `&p:${p}`).join("")}`,
+            `?i=${downloadedProject.id}${downloadedProject.plugins.map((p: string) => `&p:${p}`).join("")}`,
           );
           return;
         }
@@ -111,7 +106,7 @@ export default function ProjectProvider({
         return;
       }
 
-      const project = changeProject(searchId, downloadedProject);
+      const project = changeProject(searchId);
       setInitialOffset(project.offset);
     }
     updateProject();
