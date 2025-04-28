@@ -15,7 +15,7 @@ import SettingsDialog from "./settings-dialog";
 export default function HUD() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const { projects } = useProject();
+  const { projects, currentProject } = useProject();
   const searchParams = useSearchParams();
   const offset = usePanOffset();
   const baseButtonClasses: ClassValue =
@@ -131,7 +131,7 @@ export default function HUD() {
         offset={offset}
         open={isSettingsOpen}
         setOpen={setIsSettingsOpen}
-        project={projects.find((p) => p.id === searchParams.get("i"))}
+        project={currentProject}
       />
     </>
   );

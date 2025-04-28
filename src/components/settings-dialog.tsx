@@ -4,6 +4,7 @@ import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import type { Project } from "./project-provider";
 import { memo, useEffect, useState } from "react";
+import { Download } from "lucide-react";
 
 export default memo(function SettingsDialog({
   open,
@@ -28,7 +29,7 @@ export default memo(function SettingsDialog({
     <div
       data-visible={open}
       style={{ transform: `translate(${-offset.x}px, ${-offset.y}px)` }}
-      className="absolute top-1/2 left-1/2 flex h-dvh w-dvw -translate-x-1/2 -translate-y-1/2 items-center justify-center backdrop-blur-xl transition-all data-[visible=false]:pointer-events-none data-[visible=false]:opacity-0"
+      className="absolute top-1/2 left-1/2 flex h-dvh w-dvw -translate-x-1/2 -translate-y-1/2 cursor-default items-center justify-center backdrop-blur-xl transition-all data-[visible=false]:pointer-events-none data-[visible=false]:opacity-0"
       onClick={() => setOpen(false)}
     >
       <div
@@ -44,6 +45,25 @@ export default memo(function SettingsDialog({
             onChange={(e) => setTitle(e.target.value)}
             value={title}
           />
+          <Button
+            onClick={() => {
+              const a = document.createElement("a");
+              const blob = new Blob(
+                [JSON.stringify({ ...project, type: "organote", version: 1 })],
+                {
+                  type: "application/json",
+                },
+              );
+              a.href = URL.createObjectURL(blob);
+              a.download = `${project.title?.length ? project.title : project.id}.json`;
+              a.click();
+            }}
+            className="w-fit"
+            variant="secondary"
+          >
+            <Download />
+            Export project
+          </Button>
         </div>
         <footer className="flex items-end justify-end">
           <Button

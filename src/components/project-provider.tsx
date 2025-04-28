@@ -43,16 +43,23 @@ export default function ProjectProvider({
   const searchParams = useSearchParams();
   const projectId = currentProject?.id;
 
-  const changeProject = useCallback((id: string) => {
+  const changeProject = useCallback((id: string, newProject?: Project) => {
     const projects = Object.entries(localStorage)
       .filter(([key]) => key.startsWith("project-"))
       .map((e) => JSON.parse(e[1]) as Project)
       .sort((a, b) => b.lastModified - a.lastModified);
     let project = projects.find((p) => p.id === id) ?? null;
-    if (!project) {
+    if (newProject) {
+      if (project) {
+        projects[projects.findIndex((p) => p.id === newProject.id)] =
+          newProject;
+      } else {
+        projects.push(newProject);
+      }
+      project = newProject;
+    } else if (!project) {
       project = {
         id,
-        title: "",
         lastModified: Date.now(),
         offset: { x: 0, y: 0 },
         plugins: [],
@@ -66,16 +73,36 @@ export default function ProjectProvider({
   }, []);
 
   useEffect(() => {
-    let searchId = searchParams.get("i");
-    if (!searchId) {
-      const id = nanoid(7);
-      const params = new URLSearchParams(searchParams);
-      params.set("i", id);
-      window.history.replaceState(null, "", `?${params.toString()}`);
-      searchId = id;
+    async function updateProject() {
+      let searchId = searchParams.get("i");
+      const externalDownload = searchParams.get("e");
+      let downloadedProject: Project | undefined = undefined;
+
+      if (externalDownload) {
+        const res = await fetch(externalDownload);
+        const json = await res.json();
+        if (json.type === "organote") {
+          downloadedProject = json;
+          searchId = json.id;
+          window.history.replaceState(
+            null,
+            "",
+            `?i=${searchId}${json.plugins.map((p: string) => `&p:${p}`).join("")}`,
+          );
+        }
+      }
+      if (!searchId) {
+        const id = nanoid(7);
+        const params = new URLSearchParams(searchParams);
+        params.set("i", id);
+        window.history.replaceState(null, "", `?${params.toString()}`);
+        searchId = id;
+      }
+
+      const project = changeProject(searchId, downloadedProject);
+      setInitialOffset(project.offset);
     }
-    const project = changeProject(searchId);
-    setInitialOffset(project.offset);
+    updateProject();
   }, [changeProject, searchParams]);
 
   useEffect(() => {
