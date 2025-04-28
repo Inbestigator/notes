@@ -76,7 +76,7 @@ export default function ProjectProvider({
 
   useEffect(() => {
     async function updateProject() {
-      let searchId = searchParams.get("i");
+      const searchId = searchParams.get("i");
       const externalDownload = searchParams.get("e");
       let downloadedProject: Project | undefined = undefined;
 
@@ -91,16 +91,16 @@ export default function ProjectProvider({
             for await (const [store, items] of Object.entries(files)) {
               const tx = db.transaction(store, "readwrite");
               for (const [key, value] of Object.entries(items)) {
-                await tx.store.add(value, key);
+                await tx.store.put(value, key);
               }
             }
           }
-          searchId = downloadedProject.id;
           window.history.replaceState(
             null,
             "",
             `?i=${searchId}${downloadedProject.plugins.map((p: string) => `&p:${p}`).join("")}`,
           );
+          return;
         }
       }
       if (!searchId) {
@@ -108,7 +108,7 @@ export default function ProjectProvider({
         const params = new URLSearchParams(searchParams);
         params.set("i", id);
         window.history.replaceState(null, "", `?${params.toString()}`);
-        searchId = id;
+        return;
       }
 
       const project = changeProject(searchId, downloadedProject);
