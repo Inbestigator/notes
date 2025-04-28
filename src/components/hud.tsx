@@ -1,11 +1,10 @@
 "use client";
 
 import { PackageOpen, Settings2, Shredder } from "lucide-react";
-import { Project, useItems } from "./items";
+import { useProject, type Project } from "./project-provider";
 import { usePanOffset } from "./pan-container";
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { openFileDB } from "@/lib/db";
 import plugins from "@/plugins";
 import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -15,47 +14,12 @@ import SettingsDialog from "./settings-dialog";
 
 export default function HUD() {
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isSelectorOpen, setIsSelectorOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const { setItems } = useItems();
+  const { projects } = useProject();
   const searchParams = useSearchParams();
   const offset = usePanOffset();
   const baseButtonClasses: ClassValue =
     "hover:bg-foreground/10 flex items-center justify-center rounded-lg p-2 transition-all first:rounded-t-full last:rounded-b-full";
-
-  function addItem(type: string, variant: number) {
-    const id = crypto.randomUUID();
-    const plugin = plugins.find((p) => p.name === type);
-    const defaultProps =
-      typeof plugin?.defaultProps === "function"
-        ? plugin.defaultProps(variant)
-        : plugin?.defaultProps;
-
-    if (!plugin) return;
-
-    setItems((prev) => {
-      const newItems = { ...prev };
-      newItems[id] = {
-        id,
-        type,
-        offset: {
-          x:
-            window.innerWidth - (plugin.dimensions?.width ?? 0) - 52 - offset.x,
-          y:
-            window.innerHeight / 2 -
-            (plugin.dimensions?.height ?? 0) / 2 -
-            offset.y,
-        },
-        z: 0,
-        variant,
-        ...defaultProps,
-      };
-      const highest = Math.max(...Object.values(newItems).map((i) => i.z));
-      newItems[id].z = highest > 0 || highest === 0 ? highest + 1 : 0;
-      return newItems;
-    });
-  }
 
   useEffect(() => {
     function handleDeleteClick(e: MouseEvent) {
@@ -67,25 +31,11 @@ export default function HUD() {
         target = target.parentElement as HTMLDivElement;
       }
       if (id) {
-        setItems((prev) => {
-          const newItems = { ...prev };
-          const item = newItems[id];
-          async function deleteImage(src: string) {
-            const db = await openFileDB();
-            const store = src.split(":")[1];
-            const tx = db.transaction(store, "readwrite");
-            await tx.store.delete(src);
-          }
-          if (
-            "src" in item &&
-            typeof item.src === "string" &&
-            item.src.startsWith("upload:")
-          ) {
-            deleteImage(item.src);
-          }
-          delete newItems[id];
-          return newItems;
-        });
+        window.dispatchEvent(
+          new CustomEvent("itemDelete", {
+            detail: { id },
+          }),
+        );
       }
     }
 
@@ -97,38 +47,7 @@ export default function HUD() {
     return () => {
       document.removeEventListener("click", handleDeleteClick);
     };
-  }, [isDeleting, setItems]);
-
-  useEffect(() => {
-    setProjects(
-      Object.entries(localStorage)
-        .filter(([key]) => key.startsWith("project-"))
-        .map((e) => JSON.parse(e[1]) as Project)
-        .sort((a, b) => b.lastModified - a.lastModified),
-    );
-  }, []);
-
-  function PluginButton({ plugin }: { plugin: (typeof plugins)[number] }) {
-    const [variant, setVariant] = useState(1);
-
-    if (!plugin.HudComponent) return null;
-
-    return (
-      <button
-        key={plugin.name}
-        title={`New ${plugin.displayName ?? plugin.name}`}
-        className={baseButtonClasses as string}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          setVariant((prev) => (prev % (plugin.numVariants ?? 1)) + 1);
-        }}
-        onClick={() => addItem(plugin.name, variant)}
-        data-pannable
-      >
-        <plugin.HudComponent variant={variant} />
-      </button>
-    );
-  }
+  }, [isDeleting]);
 
   if (searchParams.has("!hud")) {
     return null;
@@ -177,41 +96,16 @@ export default function HUD() {
         className="bg-background/50 absolute top-1/2 right-2 flex -translate-y-1/2 flex-col rounded-full shadow-sm backdrop-blur-3xl"
         data-pannable
       >
-        {plugins
-          .filter((p) => p.isRequired || searchParams.has("p:" + p.name))
-          .map((plugin) => (
-            <PluginButton key={plugin.name} plugin={plugin} />
-          ))}
+        <Plugins
+          baseButtonClasses={baseButtonClasses}
+          offset={offset}
+          searchParams={searchParams}
+        />
         <hr className="bg-foreground/10" />
-        <div className="relative">
-          <button
-            title="Projects"
-            className={cn(baseButtonClasses, "rounded-lg!")}
-            onClick={() => setIsSelectorOpen(!isSelectorOpen)}
-            data-pannable
-          >
-            <PackageOpen className="size-5" />
-          </button>
-          {isSelectorOpen && (
-            <nav className="bg-background/50 absolute top-0 right-full origin-top-right -translate-x-2 rounded-lg shadow-sm backdrop-blur-3xl">
-              {projects.map((p) => (
-                <Link
-                  key={p.id}
-                  href={`?i=${p.id}${p.plugins
-                    .filter(
-                      (p) => !plugins.find((p2) => p2.name === p)?.isRequired,
-                    )
-                    .map((p) => `&p:${p}`)
-                    .join("")}`}
-                  className={cn(baseButtonClasses, "rounded-lg! text-nowrap")}
-                  data-pannable
-                >
-                  {p.title ?? "Untitled Project"}
-                </Link>
-              ))}
-            </nav>
-          )}
-        </div>
+        <ProjectSelector
+          baseButtonClasses={baseButtonClasses}
+          projects={projects}
+        />
         <button
           title="Settings"
           className={baseButtonClasses}
@@ -242,3 +136,126 @@ export default function HUD() {
     </>
   );
 }
+
+function Plugins({
+  baseButtonClasses,
+  offset,
+  searchParams,
+}: {
+  baseButtonClasses: ClassValue;
+  offset: { x: number; y: number };
+  searchParams: URLSearchParams;
+}) {
+  function addItem(type: string, variant: number) {
+    const id = crypto.randomUUID();
+    const plugin = plugins.find((p) => p.name === type);
+    const defaultProps =
+      typeof plugin?.defaultProps === "function"
+        ? plugin.defaultProps(variant)
+        : plugin?.defaultProps;
+
+    if (!plugin) return;
+
+    window.dispatchEvent(
+      new CustomEvent("itemCreate", {
+        detail: {
+          id,
+          type,
+          offset: {
+            x:
+              window.innerWidth -
+              (plugin.dimensions?.width ?? 0) -
+              52 -
+              offset.x,
+            y:
+              window.innerHeight / 2 -
+              (plugin.dimensions?.height ?? 0) / 2 -
+              offset.y,
+          },
+          z: 0,
+          variant,
+          ...defaultProps,
+        },
+      }),
+    );
+  }
+
+  function PluginButton({ plugin }: { plugin: (typeof plugins)[number] }) {
+    const [variant, setVariant] = useState(1);
+
+    if (!plugin.HudComponent) return null;
+
+    return (
+      <button
+        key={plugin.name}
+        title={`New ${plugin.displayName ?? plugin.name}`}
+        className={baseButtonClasses as string}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setVariant((prev) => (prev % (plugin.numVariants ?? 1)) + 1);
+        }}
+        onClick={() => addItem(plugin.name, variant)}
+        data-pannable
+      >
+        <plugin.HudComponent variant={variant} />
+      </button>
+    );
+  }
+
+  return plugins
+    .filter((p) => p.isRequired || searchParams.has("p:" + p.name))
+    .map((plugin) => <PluginButton key={plugin.name} plugin={plugin} />);
+}
+
+const ProjectSelector = memo(
+  function ProjectSelector({
+    baseButtonClasses,
+    projects,
+  }: {
+    baseButtonClasses: ClassValue;
+    projects: Project[];
+  }) {
+    const [isSelectorOpen, setIsSelectorOpen] = useState(false);
+
+    return (
+      <div className="relative">
+        <button
+          title="Projects"
+          className={cn(baseButtonClasses, "rounded-lg!")}
+          onClick={() => setIsSelectorOpen(!isSelectorOpen)}
+          data-pannable
+        >
+          <PackageOpen className="size-5" />
+        </button>
+        {isSelectorOpen && (
+          <nav className="bg-background/50 absolute top-0 right-full min-w-32 origin-top-right -translate-x-2 rounded-lg shadow-sm backdrop-blur-3xl">
+            {projects.map((p) => (
+              <Link
+                key={p.id}
+                href={`?i=${p.id}${p.plugins
+                  .filter(
+                    (p) => !plugins.find((p2) => p2.name === p)?.isRequired,
+                  )
+                  .map((p) => `&p:${p}`)
+                  .join("")}`}
+                className={cn(
+                  baseButtonClasses,
+                  "justify-start rounded-lg! text-nowrap",
+                )}
+                data-pannable
+              >
+                {p.title?.length ? p.title : "Untitled Project"}
+              </Link>
+            ))}
+          </nav>
+        )}
+      </div>
+    );
+  },
+  (prev, next) =>
+    prev.projects.length === next.projects.length &&
+    next.projects.every(
+      (p, i) =>
+        p.id === prev.projects[i].id && p.title === prev.projects[i].title,
+    ),
+);

@@ -1,10 +1,10 @@
 "use client";
 
-import { useContext, createContext, useState, useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { nanoid } from "nanoid";
 import plugins from "@/plugins";
-import { usePanOffset, useSetPanOffset } from "./pan-container";
+import { openFileDB } from "@/lib/db";
+import { useProject } from "./project-provider";
 
 export interface BaseItem {
   id: string;
@@ -14,92 +14,35 @@ export interface BaseItem {
   variant: number;
 }
 
-export const ItemContext = createContext(
-  {} as {
-    items: Record<string, BaseItem>;
-    setItems: React.Dispatch<React.SetStateAction<Record<string, BaseItem>>>;
-  },
-);
-
-export function useItems() {
-  return useContext(ItemContext);
-}
-
-export interface Project {
-  id: string;
-  title?: string;
-  lastModified: number;
-  offset: { x: number; y: number };
-  plugins: string[];
-  items: Record<string, BaseItem>;
-}
-
 export default function Items({ children }: { children?: React.ReactNode }) {
-  const [projectData, setProjectData] = useState({} as Project);
-  const [items, setItems] = useState({} as Project["items"]);
+  const { currentProject, setCurrentProject } = useProject();
   const searchParams = useSearchParams();
-  const panOffset = usePanOffset();
-  const setPanOffset = useSetPanOffset();
   const projectId = searchParams.get("i");
 
-  useEffect(() => {
-    if (!projectId) {
-      const params = new URLSearchParams(searchParams.toString());
-      params.set("i", nanoid(7));
-      window.history.replaceState(null, "", `?${params.toString()}`);
-      return;
-    }
-
-    const storedProject = localStorage.getItem(`project-${projectId}`);
-    if (storedProject) {
-      const parsedProject = JSON.parse(storedProject) as Project;
-      setProjectData(parsedProject);
-      setItems(parsedProject.items);
-      setPanOffset(parsedProject.offset);
-    }
-  }, [projectId, searchParams, setPanOffset]);
-
-  useEffect(() => {
-    if (
-      !projectId ||
-      (!Object.keys(items).length &&
-        !projectData.title &&
-        !localStorage.getItem(`project-${projectId}`))
-    )
-      return;
-    localStorage.setItem(
-      `project-${projectId}`,
-      JSON.stringify({
-        id: projectId,
-        title: projectData.title,
-        offset: panOffset,
-        lastModified: Date.now(),
-        plugins: new Set(Object.values(items).map((i) => i.type))
-          .values()
-          .toArray(),
-        items,
-      }),
-    );
-  }, [projectData, items, projectId, searchParams, panOffset]);
-
-  function updateItem(
-    id: string,
-    item:
-      | Partial<BaseItem>
-      | ((prev: Record<string, BaseItem>) => Partial<BaseItem>),
-  ) {
-    setItems((prev) => {
-      const newItems = { ...prev };
-      if (typeof item === "function") {
-        item = item(newItems);
-      }
-      newItems[id] = {
-        ...newItems[id],
-        ...item,
-      };
-      return newItems;
-    });
-  }
+  const updateItem = useCallback(
+    (
+      id: string,
+      item:
+        | Partial<BaseItem>
+        | ((prev: Record<string, BaseItem>) => Partial<BaseItem>),
+    ) => {
+      setCurrentProject((prev) => {
+        const newItems = { ...prev.items };
+        if (typeof item === "function") {
+          item = item(newItems);
+        }
+        newItems[id] = {
+          ...newItems[id],
+          ...item,
+        };
+        return {
+          ...prev,
+          items: newItems,
+        };
+      });
+    },
+    [setCurrentProject],
+  );
 
   function handleBringToFront(id: string, currentZ: number) {
     updateItem(id, (i) => {
@@ -111,29 +54,68 @@ export default function Items({ children }: { children?: React.ReactNode }) {
   }
 
   useEffect(() => {
+    const handleItemCreate = (e: Event) => {
+      if (e instanceof CustomEvent) {
+        if (!e.detail || !e.detail.id) return;
+        setCurrentProject((prev) => {
+          const newItems = { ...prev.items };
+          newItems[e.detail.id] = {
+            ...e.detail,
+          };
+          const highest = Math.max(...Object.values(newItems).map((i) => i.z));
+          newItems[e.detail.id].z =
+            highest > 0 || highest === 0 ? highest + 1 : 0;
+          return {
+            ...prev,
+            items: newItems,
+          };
+        });
+      }
+    };
     const handleItemUpdate = (e: Event) => {
       if (e instanceof CustomEvent) {
         if (!e.detail || !e.detail.id || !e.detail.partial) return;
-        if (e.detail.id === projectId) {
-          setProjectData((prev) => ({
-            ...prev,
-            ...e.detail.partial,
-          }));
-          return;
-        }
         updateItem(e.detail.id, e.detail.partial);
       }
     };
-
-    window.addEventListener("itemUpdate", handleItemUpdate);
-    return () => {
-      window.removeEventListener("itemUpdate", handleItemUpdate);
+    const handleItemDelete = (e: Event) => {
+      if (e instanceof CustomEvent) {
+        if (!e.detail || !e.detail.id) return;
+        setCurrentProject((prev) => {
+          const newItems = { ...prev.items };
+          const item = newItems[e.detail.id];
+          async function deleteImage(src: string) {
+            const db = await openFileDB();
+            const store = src.split(":")[1];
+            const tx = db.transaction(store, "readwrite");
+            await tx.store.delete(src);
+          }
+          if (
+            "src" in item &&
+            typeof item.src === "string" &&
+            item.src.startsWith("upload:")
+          ) {
+            deleteImage(item.src);
+          }
+          delete newItems[e.detail.id];
+          return { ...prev, items: newItems };
+        });
+      }
     };
-  }, [projectId]);
+
+    window.addEventListener("itemCreate", handleItemCreate);
+    window.addEventListener("itemUpdate", handleItemUpdate);
+    window.addEventListener("itemDelete", handleItemDelete);
+    return () => {
+      window.removeEventListener("itemCreate", handleItemCreate);
+      window.removeEventListener("itemUpdate", handleItemUpdate);
+      window.removeEventListener("itemDelete", handleItemDelete);
+    };
+  }, [projectId, setCurrentProject, updateItem]);
 
   return (
-    <ItemContext.Provider value={{ items, setItems }}>
-      {Object.values(items)
+    <>
+      {Object.values(currentProject.items)
         .sort((a, b) => a.z - b.z)
         .map((item) => {
           const plugin = plugins
@@ -152,6 +134,6 @@ export default function Items({ children }: { children?: React.ReactNode }) {
           );
         })}
       {children}
-    </ItemContext.Provider>
+    </>
   );
 }

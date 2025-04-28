@@ -1,8 +1,8 @@
-import { useItems } from "./items";
 import useDrag from "@/lib/hooks/drag";
 import { cn } from "@/lib/utils";
 import { ClassValue } from "clsx";
 import { memo } from "react";
+import { useProject } from "./project-provider";
 
 const ItemWrapper = memo(function ItemWrapper({
   id,
@@ -15,10 +15,10 @@ const ItemWrapper = memo(function ItemWrapper({
   className?: string;
   tabClassName?: ClassValue;
 }) {
-  const { items } = useItems();
+  const { currentProject } = useProject();
   const { isDragging, localOffset, handleMouseDown } = useDrag(
     id,
-    items[id].offset,
+    currentProject.items[id].offset,
   );
 
   return (

@@ -2,10 +2,10 @@
 
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import { Project } from "./items";
-import { useEffect, useState } from "react";
+import type { Project } from "./project-provider";
+import { memo, useEffect, useState } from "react";
 
-export default function SettingsDialog({
+export default memo(function SettingsDialog({
   open,
   setOpen,
   offset,
@@ -49,7 +49,7 @@ export default function SettingsDialog({
           <Button
             onClick={() => {
               window.dispatchEvent(
-                new CustomEvent("itemUpdate", {
+                new CustomEvent("projectUpdate", {
                   detail: { id: project?.id, partial: { title } },
                 }),
               );
@@ -62,4 +62,4 @@ export default function SettingsDialog({
       </div>
     </div>
   );
-}
+});

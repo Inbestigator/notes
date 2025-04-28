@@ -8,6 +8,7 @@ import {
   createContext,
   useContext,
 } from "react";
+import { useProject } from "./project-provider";
 
 const PanContext = createContext(
   {} as {
@@ -28,12 +29,25 @@ export default function PanContainer({
 }: {
   children: React.ReactNode;
 }) {
+  const { currentProject, setCurrentProject } = useProject();
   const containerRef = useRef<HTMLDivElement>(null);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [hasStarted, setHasStarted] = useState(false);
   const wheelTimeoutRef = useRef<NodeJS.Timeout>(null);
   const isMiddleClicking = useRef(false);
   const lastMousePos = useRef<{ x: number; y: number }>(null);
+
+  useEffect(() => {
+    setOffset(currentProject.offset);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    setCurrentProject((prev) => ({
+      ...prev,
+      offset,
+    }));
+  }, [offset, setCurrentProject]);
 
   const handleWheel = useCallback(
     (e: WheelEvent) => {
