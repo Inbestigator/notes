@@ -2,6 +2,7 @@ import linedPaper from "./lined-paper";
 import textSticky from "./text-sticky";
 import still from "./still";
 import header from "./header";
+import math from "./math";
 
 export interface Plugin<T> {
   name: string;
@@ -20,6 +21,6 @@ export interface Plugin<T> {
   }) => React.ReactElement;
 }
 
-const plugins = [textSticky, linedPaper, still, header];
+const plugins = [textSticky, linedPaper, still, header, math];
 
 export default plugins;

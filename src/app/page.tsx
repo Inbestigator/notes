@@ -6,13 +6,23 @@ import { Suspense } from "react";
 
 export default function Home() {
   return (
-    <ProjectProvider>
-      <PanContainer>
-        <Suspense>
+    <Suspense
+      fallback={
+        <div
+          className="absolute inset-0 bg-[size:32px] bg-clip-border"
+          style={{
+            backgroundImage: "url('/dots.png')",
+            willChange: "background-position",
+          }}
+        />
+      }
+    >
+      <ProjectProvider>
+        <PanContainer>
           <Items />
           <HUD />
-        </Suspense>
-      </PanContainer>
-    </ProjectProvider>
+        </PanContainer>
+      </ProjectProvider>
+    </Suspense>
   );
 }

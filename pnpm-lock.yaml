@@ -53,6 +53,9 @@ importers:
       "@tailwindcss/postcss":
         specifier: ^4.1.4
         version: 4.1.4
+      "@types/desmos":
+        specifier: ^1.11.0
+        version: 1.11.0
       "@types/node":
         specifier: ^20.17.31
         version: 20.17.31
@@ -683,6 +686,12 @@ packages:
     resolution:
       {
         integrity: sha512-6+7nlbMVX/PVDCwaIQ8nTOPveOcFLSt8GcXdx8hD0bt39uWxYT88uXzqTd4fTvqta7oeUJqudepapKNt2DYJFw==,
+      }
+
+  "@types/desmos@1.11.0":
+    resolution:
+      {
+        integrity: sha512-bx2VyonCstH0oy9wrBZoFvxV46hiXOD8YcTI6BhNhQg3oERtrcit32p/+06MBiXi3ocNmUr/3kC5B5Sod9vIrg==,
       }
 
   "@types/estree@1.0.7":
@@ -3383,6 +3392,8 @@ snapshots:
     dependencies:
       tslib: 2.8.1
     optional: true
+
+  "@types/desmos@1.11.0": {}
 
   "@types/estree@1.0.7": {}
 

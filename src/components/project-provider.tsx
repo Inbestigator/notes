@@ -105,7 +105,16 @@ export default function ProjectProvider({
     };
   });
 
-  if (!currentProject) return null;
+  if (!currentProject)
+    return (
+      <div
+        className="absolute inset-0 bg-[size:32px] bg-clip-border"
+        style={{
+          backgroundImage: "url('/dots.png')",
+          willChange: "background-position",
+        }}
+      />
+    );
 
   return (
     <ProjectContext.Provider
