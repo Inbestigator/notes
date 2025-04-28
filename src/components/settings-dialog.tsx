@@ -5,6 +5,7 @@ import { Button } from "./ui/button";
 import type { Project } from "./project-provider";
 import { memo, useEffect, useState } from "react";
 import { Download } from "lucide-react";
+import { openFileDB } from "@/lib/db";
 
 export default memo(function SettingsDialog({
   open,
@@ -46,16 +47,34 @@ export default memo(function SettingsDialog({
             value={title}
           />
           <Button
-            onClick={() => {
+            onClick={async () => {
               const a = document.createElement("a");
+              const db = await openFileDB();
+              const files: Record<string, Record<string, unknown>> = {};
+              for (const store of db.objectStoreNames) {
+                const tx = db.transaction(store, "readonly");
+                const filesOfType: Record<string, unknown> = {};
+                const allKeys = await tx.store.getAllKeys();
+                for (const key of allKeys) {
+                  filesOfType[key.toString()] = await tx.store.get(key);
+                }
+                files[store] = filesOfType;
+              }
               const blob = new Blob(
-                [JSON.stringify({ ...project, type: "organote", version: 1 })],
+                [
+                  JSON.stringify({
+                    type: "organote",
+                    version: 2,
+                    project,
+                    files,
+                  }),
+                ],
                 {
                   type: "application/json",
                 },
               );
               a.href = URL.createObjectURL(blob);
-              a.download = `${project.title?.length ? project.title : project.id}.json`;
+              a.download = `${project.title?.length ? project.title : project.id}.note`;
               a.click();
             }}
             className="w-fit"

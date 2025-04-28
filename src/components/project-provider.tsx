@@ -10,6 +10,8 @@ import {
 import { useSearchParams } from "next/navigation";
 import { nanoid } from "nanoid";
 import { BaseItem } from "./items";
+import { openFileDB } from "@/lib/db";
+import { Loader2 } from "lucide-react";
 
 export interface Project {
   id: string;
@@ -82,12 +84,22 @@ export default function ProjectProvider({
         const res = await fetch(externalDownload);
         const json = await res.json();
         if (json.type === "organote") {
-          downloadedProject = json;
-          searchId = json.id;
+          downloadedProject = json.project as Project;
+          if (json.version === 2) {
+            const db = await openFileDB();
+            const files: Record<string, Record<string, unknown>> = json.files;
+            for await (const [store, items] of Object.entries(files)) {
+              const tx = db.transaction(store, "readwrite");
+              for (const [key, value] of Object.entries(items)) {
+                await tx.store.add(value, key);
+              }
+            }
+          }
+          searchId = downloadedProject.id;
           window.history.replaceState(
             null,
             "",
-            `?i=${searchId}${json.plugins.map((p: string) => `&p:${p}`).join("")}`,
+            `?i=${searchId}${downloadedProject.plugins.map((p: string) => `&p:${p}`).join("")}`,
           );
         }
       }
@@ -142,12 +154,14 @@ export default function ProjectProvider({
   if (!currentProject)
     return (
       <div
-        className="absolute inset-0 bg-[size:32px] bg-clip-border"
+        className="absolute inset-0 flex items-center justify-center bg-[size:32px] bg-clip-border"
         style={{
           backgroundImage: "url('/dots.png')",
           willChange: "background-position",
         }}
-      />
+      >
+        <Loader2 className="text-muted-foreground size-8 animate-spin" />
+      </div>
     );
 
   return (
