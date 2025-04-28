@@ -2,8 +2,8 @@ import { usePanOffset } from "@/components/pan-container";
 import { useEffect, useRef, useState } from "react";
 
 export default function useDrag(
-  id: string,
   startOffset: { x: number; y: number },
+  onDragEnd: (offset: { x: number; y: number }) => void,
 ) {
   const [localOffset, setLocalOffset] = useState(startOffset);
   const [isDragging, setIsDragging] = useState(false);
@@ -33,19 +33,7 @@ export default function useDrag(
     };
 
     const handleMouseUp = () => {
-      window.dispatchEvent(
-        new CustomEvent("itemUpdate", {
-          detail: {
-            id,
-            partial: {
-              offset: {
-                x: localOffsetRef.current.x,
-                y: localOffsetRef.current.y,
-              },
-            },
-          },
-        }),
-      );
+      onDragEnd(localOffsetRef.current);
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
       setIsDragging(false);

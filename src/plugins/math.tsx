@@ -8,7 +8,7 @@ import { memo, useRef } from "react";
 import Script from "next/script";
 import Sheet from "@/components/primitives/paper";
 
-interface MathItem extends BaseItem {
+interface Math extends BaseItem {
   type: "math";
   calculator: unknown;
 }
@@ -61,9 +61,9 @@ export default {
   dimensions: { width: 672, height: 384 },
   HudComponent: () => <CalculatorIcon className="size-5" />,
   RenderedComponent,
-} as Plugin<MathItem>;
+} as Plugin<Math>;
 
-function RenderedComponent({ id, item }: { id: string; item: MathItem }) {
+function RenderedComponent({ id, item }: { id: string; item: Math }) {
   return (
     <Sheet id={id}>
       <Calculator id={id} initial={item.calculator} />

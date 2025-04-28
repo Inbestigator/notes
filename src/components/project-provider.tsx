@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { useSearchParams } from "next/navigation";
 import { nanoid } from "nanoid";
 import { BaseItem } from "./items";
@@ -20,6 +26,7 @@ const ProjectContext = createContext(
     projects: Project[];
     setCurrentProject: React.Dispatch<React.SetStateAction<Project>>;
     initialOffset: Project["offset"];
+    changeProject: (id: string) => Project | null;
   },
 );
 
@@ -34,50 +41,42 @@ export default function ProjectProvider({
   const [projects, setProjects] = useState<Project[]>([]);
   const [initialOffset, setInitialOffset] = useState({ x: 0, y: 0 });
   const searchParams = useSearchParams();
-  const [projectId, setProjectId] = useState(searchParams.get("i"));
+  const projectId = currentProject?.id;
 
-  useEffect(() => {
-    setProjectId(searchParams.get("i"));
-  }, [searchParams]);
-
-  useEffect(() => {
-    setProjects(
-      Object.entries(localStorage)
-        .filter(([key]) => key.startsWith("project-"))
-        .map((e) => JSON.parse(e[1]) as Project)
-        .sort((a, b) => b.lastModified - a.lastModified),
-    );
+  const changeProject = useCallback((id: string) => {
+    const projects = Object.entries(localStorage)
+      .filter(([key]) => key.startsWith("project-"))
+      .map((e) => JSON.parse(e[1]) as Project)
+      .sort((a, b) => b.lastModified - a.lastModified);
+    let project = projects.find((p) => p.id === id) ?? null;
+    if (!project) {
+      project = {
+        id,
+        title: "",
+        lastModified: Date.now(),
+        offset: { x: 0, y: 0 },
+        plugins: [],
+        items: {},
+      };
+      projects.push(project);
+    }
+    setProjects(projects);
+    setCurrentProject(project);
+    return project;
   }, []);
 
   useEffect(() => {
-    if (
-      !projectId ||
-      (!projects.some((p) => p.id === projectId) && projects.length)
-    ) {
-      const id = projectId ?? nanoid(7);
+    let searchId = searchParams.get("i");
+    if (!searchId) {
+      const id = nanoid(7);
       const params = new URLSearchParams(searchParams);
       params.set("i", id);
       window.history.replaceState(null, "", `?${params.toString()}`);
-      setProjects((prev) => [
-        ...prev,
-        {
-          id,
-          title: "",
-          lastModified: Date.now(),
-          offset: { x: 0, y: 0 },
-          plugins: [],
-          items: {},
-        },
-      ]);
-      setProjectId(id);
-      return;
+      searchId = id;
     }
-    const project = projects.find((p) => p.id === projectId);
-    if (project) {
-      setCurrentProject(project);
-      setInitialOffset(project.offset);
-    }
-  }, [projectId, projects, searchParams]);
+    const project = changeProject(searchId);
+    setInitialOffset(project.offset);
+  }, [changeProject, searchParams]);
 
   useEffect(() => {
     if (
@@ -133,6 +132,7 @@ export default function ProjectProvider({
         >,
         projects,
         initialOffset,
+        changeProject,
       }}
     >
       {children}

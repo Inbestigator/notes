@@ -17,8 +17,11 @@ const ItemWrapper = memo(function ItemWrapper({
 }) {
   const { currentProject } = useProject();
   const { isDragging, localOffset, handleMouseDown } = useDrag(
-    id,
     currentProject.items[id].offset,
+    (offset) =>
+      window.dispatchEvent(
+        new CustomEvent("itemUpdate", { detail: { id, partial: { offset } } }),
+      ),
   );
 
   return (
