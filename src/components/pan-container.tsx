@@ -29,7 +29,7 @@ export default function PanContainer({
 }: {
   children: React.ReactNode;
 }) {
-  const { currentProject, setCurrentProject } = useProject();
+  const { setCurrentProject, initialOffset } = useProject();
   const containerRef = useRef<HTMLDivElement>(null);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [hasStarted, setHasStarted] = useState(false);
@@ -38,9 +38,8 @@ export default function PanContainer({
   const lastMousePos = useRef<{ x: number; y: number }>(null);
 
   useEffect(() => {
-    setOffset(currentProject.offset);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    setOffset(initialOffset);
+  }, [initialOffset]);
 
   useEffect(() => {
     setCurrentProject((prev) => ({

@@ -19,6 +19,7 @@ const ProjectContext = createContext(
     currentProject: Project;
     projects: Project[];
     setCurrentProject: React.Dispatch<React.SetStateAction<Project>>;
+    initialOffset: Project["offset"];
   },
 );
 
@@ -31,6 +32,7 @@ export default function ProjectProvider({
 }) {
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [initialOffset, setInitialOffset] = useState({ x: 0, y: 0 });
   const searchParams = useSearchParams();
   const [projectId, setProjectId] = useState(searchParams.get("i"));
 
@@ -53,7 +55,9 @@ export default function ProjectProvider({
       (!projects.some((p) => p.id === projectId) && projects.length)
     ) {
       const id = projectId ?? nanoid(7);
-      window.history.replaceState(null, "", `?i=${id}`);
+      const params = new URLSearchParams(searchParams);
+      params.set("i", id);
+      window.history.replaceState(null, "", `?${params.toString()}`);
       setProjects((prev) => [
         ...prev,
         {
@@ -68,8 +72,12 @@ export default function ProjectProvider({
       setProjectId(id);
       return;
     }
-    setCurrentProject(projects.find((p) => p.id === projectId) ?? null);
-  }, [projectId, projects]);
+    const project = projects.find((p) => p.id === projectId);
+    if (project) {
+      setCurrentProject(project);
+      setInitialOffset(project.offset);
+    }
+  }, [projectId, projects, searchParams]);
 
   useEffect(() => {
     if (
@@ -124,6 +132,7 @@ export default function ProjectProvider({
           React.SetStateAction<Project>
         >,
         projects,
+        initialOffset,
       }}
     >
       {children}
