@@ -76,7 +76,6 @@ function RenderedComponent({ id, item }: { id: string; item: StickyNote }) {
       const deltaX = e.clientX - startX.current;
       const newWidth = Math.max(224, startWidth.current + deltaX);
       setLocalWidth(newWidth);
-      calcHeight();
     }
 
     function handleMouseUp() {
@@ -85,6 +84,7 @@ function RenderedComponent({ id, item }: { id: string; item: StickyNote }) {
         debouncedResize(localWidth);
       }
     }
+    calcHeight();
 
     if (isResizing) {
       window.addEventListener("mousemove", handleMouseMove);
