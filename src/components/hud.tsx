@@ -1,19 +1,28 @@
 "use client";
 
-import { Shredder } from "lucide-react";
-import { useItems } from "./items";
+import { PackageOpen, Settings2, Shredder } from "lucide-react";
+import { Project, useItems } from "./items";
 import { usePanOffset } from "./pan-container";
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { openFileDB } from "@/lib/db";
 import plugins from "@/plugins";
 import { useSearchParams } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { ClassValue } from "clsx";
+import Link from "next/link";
+import SettingsDialog from "./settings-dialog";
 
 export default function HUD() {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSelectorOpen, setIsSelectorOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [projects, setProjects] = useState<Project[]>([]);
   const { setItems } = useItems();
   const searchParams = useSearchParams();
   const offset = usePanOffset();
+  const baseButtonClasses: ClassValue =
+    "hover:bg-foreground/10 flex items-center justify-center rounded-lg p-2 transition-all first:rounded-t-full last:rounded-b-full";
 
   function addItem(type: string, variant: number) {
     const id = crypto.randomUUID();
@@ -90,6 +99,15 @@ export default function HUD() {
     };
   }, [isDeleting, setItems]);
 
+  useEffect(() => {
+    setProjects(
+      Object.entries(localStorage)
+        .filter(([key]) => key.startsWith("project-"))
+        .map((e) => JSON.parse(e[1]) as Project)
+        .sort((a, b) => b.lastModified - a.lastModified),
+    );
+  }, []);
+
   function PluginButton({ plugin }: { plugin: (typeof plugins)[number] }) {
     const [variant, setVariant] = useState(1);
 
@@ -99,7 +117,7 @@ export default function HUD() {
       <button
         key={plugin.name}
         title={`New ${plugin.displayName ?? plugin.name}`}
-        className="hover:bg-foreground/10 flex items-center justify-center rounded-lg p-2 transition-all"
+        className={baseButtonClasses as string}
         onContextMenu={(e) => {
           e.preventDefault();
           setVariant((prev) => (prev % (plugin.numVariants ?? 1)) + 1);
@@ -156,7 +174,7 @@ export default function HUD() {
           transform: `translate(${-offset.x}px, ${-offset.y}px)`,
           willChange: "transform",
         }}
-        className="bg-background/50 absolute top-1/2 right-2 flex -translate-y-1/2 flex-col overflow-hidden rounded-full shadow-sm backdrop-blur-3xl"
+        className="bg-background/50 absolute top-1/2 right-2 flex -translate-y-1/2 flex-col rounded-full shadow-sm backdrop-blur-3xl"
         data-pannable
       >
         {plugins
@@ -164,16 +182,63 @@ export default function HUD() {
           .map((plugin) => (
             <PluginButton key={plugin.name} plugin={plugin} />
           ))}
+        <hr className="bg-foreground/10" />
+        <div className="relative">
+          <button
+            title="Projects"
+            className={cn(baseButtonClasses, "rounded-lg!")}
+            onClick={() => setIsSelectorOpen(!isSelectorOpen)}
+            data-pannable
+          >
+            <PackageOpen className="size-5" />
+          </button>
+          {isSelectorOpen && (
+            <nav className="bg-background/50 absolute top-0 right-full origin-top-right -translate-x-2 rounded-lg shadow-sm backdrop-blur-3xl">
+              {projects.map((p) => (
+                <Link
+                  key={p.id}
+                  href={`?i=${p.id}${p.plugins
+                    .filter(
+                      (p) => !plugins.find((p2) => p2.name === p)?.isRequired,
+                    )
+                    .map((p) => `&p:${p}`)
+                    .join("")}`}
+                  className={cn(baseButtonClasses, "rounded-lg! text-nowrap")}
+                  data-pannable
+                >
+                  {p.title ?? "Untitled Project"}
+                </Link>
+              ))}
+            </nav>
+          )}
+        </div>
+        <button
+          title="Settings"
+          className={baseButtonClasses}
+          onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+          data-pannable
+        >
+          <Settings2 className="size-5" />
+        </button>
         <button
           title={isDeleting ? "Cancel" : "Delete"}
           data-active={isDeleting}
-          className="hover:bg-foreground/10 hover:text-destructive data-[active=true]:text-destructive flex items-center justify-center rounded-lg p-2 transition-all"
+          className={cn(
+            baseButtonClasses,
+            "hover:text-destructive data-[active=true]:text-destructive",
+          )}
           onClick={() => setIsDeleting(!isDeleting)}
           data-pannable
         >
           <Shredder className="size-5" />
         </button>
       </nav>
+      <SettingsDialog
+        offset={offset}
+        open={isSettingsOpen}
+        setOpen={setIsSettingsOpen}
+        project={projects.find((p) => p.id === searchParams.get("i"))}
+      />
     </>
   );
 }

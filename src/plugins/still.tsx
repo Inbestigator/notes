@@ -144,7 +144,7 @@ function RenderedComponent({ id, item }: { id: string; item: Still }) {
             alt={imageData.name ?? item.title}
             width={384}
             height={384}
-            className="size-96 object-contain"
+            className="size-96 rounded-xs object-contain"
           />
         )}
       </div>

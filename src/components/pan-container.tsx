@@ -79,29 +79,75 @@ export default function PanContainer({
     }
   }, []);
 
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      const elUnderPointer = document.elementFromPoint(
+        touch.clientX,
+        touch.clientY,
+      );
+      if (elUnderPointer?.hasAttribute("data-pannable")) {
+        lastMousePos.current = { x: touch.clientX, y: touch.clientY };
+      }
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    if (lastMousePos.current && e.touches.length === 1) {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const dx = touch.clientX - lastMousePos.current.x;
+      const dy = touch.clientY - lastMousePos.current.y;
+
+      setOffset((prev) => ({
+        x: prev.x + dx,
+        y: prev.y + dy,
+      }));
+
+      lastMousePos.current = { x: touch.clientX, y: touch.clientY };
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    lastMousePos.current = null;
+  }, []);
+
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
 
     el.addEventListener("wheel", handleWheel, { passive: false });
-    window.addEventListener("mousedown", handleMouseUpDown);
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUpDown);
+    el.addEventListener("mousedown", handleMouseUpDown);
+    el.addEventListener("mousemove", handleMouseMove);
+    el.addEventListener("mouseup", handleMouseUpDown);
+    el.addEventListener("touchstart", handleTouchStart, { passive: false });
+    el.addEventListener("touchmove", handleTouchMove, { passive: false });
+    el.addEventListener("touchend", handleTouchEnd);
 
     return () => {
       el.removeEventListener("wheel", handleWheel);
-      window.removeEventListener("mousedown", handleMouseUpDown);
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUpDown);
+      el.removeEventListener("mousedown", handleMouseUpDown);
+      el.removeEventListener("mousemove", handleMouseMove);
+      el.removeEventListener("mouseup", handleMouseUpDown);
+      el.removeEventListener("touchstart", handleTouchStart);
+      el.removeEventListener("touchmove", handleTouchMove);
+      el.removeEventListener("touchend", handleTouchEnd);
     };
-  }, [handleWheel, handleMouseUpDown, handleMouseMove]);
+  }, [
+    handleWheel,
+    handleMouseUpDown,
+    handleMouseMove,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+  ]);
 
   return (
     <PanContext.Provider value={{ offset, setOffset }}>
       <div
         data-pannable
         ref={containerRef}
-        className="absolute inset-0 cursor-move overflow-hidden bg-[size:32px] bg-clip-border"
+        className="absolute inset-0 cursor-move touch-none overflow-hidden bg-[size:32px] bg-clip-border" // touch-none prevents browser from interfering
         style={{
           backgroundPosition: `${offset.x}px ${offset.y}px`,
           backgroundImage: "url('/dots.png')",

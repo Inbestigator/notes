@@ -34,49 +34,6 @@ export interface Project {
   items: Record<string, BaseItem>;
 }
 
-function createDashboard(projects: string[]) {
-  return Object.fromEntries(
-    projects
-      .sort((a, b) => {
-        const aData = JSON.parse(localStorage.getItem(a) ?? "") as Project;
-        const bData = JSON.parse(localStorage.getItem(b) ?? "") as Project;
-        return bData.lastModified - aData.lastModified;
-      })
-      .map((p, i) => {
-        const project = JSON.parse(localStorage.getItem(p) ?? "") as Project;
-        const xFactor = i * (window.innerWidth * 0.875);
-        return [
-          [
-            p + "title",
-            {
-              id: p + "title",
-              type: "header",
-              offset: {
-                x: i * (window.innerWidth * 0.875),
-                y: window.innerHeight * 0.75,
-              },
-              z: 1,
-              variant: 1,
-              content: project.title ?? "Untitled Project",
-            },
-          ],
-          [
-            p,
-            {
-              id: p,
-              type: "project-window",
-              offset: { x: xFactor, y: 0 },
-              z: 0,
-              variant: 0,
-              project,
-            },
-          ],
-        ];
-      })
-      .flat(1),
-  );
-}
-
 export default function Items({ children }: { children?: React.ReactNode }) {
   const [projectData, setProjectData] = useState({} as Project);
   const [items, setItems] = useState({} as Project["items"]);
@@ -99,19 +56,6 @@ export default function Items({ children }: { children?: React.ReactNode }) {
       setProjectData(parsedProject);
       setItems(parsedProject.items);
       setPanOffset(parsedProject.offset);
-    } else if (projectId === "pick") {
-      const projects = Object.keys(localStorage).filter((k) =>
-        k.startsWith("project-"),
-      );
-      setProjectData({
-        id: projectId,
-        title: "Pick a project",
-        offset: { x: 0, y: 0 },
-        lastModified: Date.now(),
-        plugins: ["iframe"],
-        items: {},
-      });
-      setItems(createDashboard(projects));
     }
   }, [projectId, searchParams, setPanOffset]);
 
@@ -120,8 +64,7 @@ export default function Items({ children }: { children?: React.ReactNode }) {
       !projectId ||
       (!Object.keys(items).length &&
         !projectData.title &&
-        !localStorage.getItem(`project-${projectId}`)) ||
-      projectId === "pick"
+        !localStorage.getItem(`project-${projectId}`))
     )
       return;
     localStorage.setItem(
@@ -171,7 +114,13 @@ export default function Items({ children }: { children?: React.ReactNode }) {
     const handleItemUpdate = (e: Event) => {
       if (e instanceof CustomEvent) {
         if (!e.detail || !e.detail.id || !e.detail.partial) return;
-
+        if (e.detail.id === projectId) {
+          setProjectData((prev) => ({
+            ...prev,
+            ...e.detail.partial,
+          }));
+          return;
+        }
         updateItem(e.detail.id, e.detail.partial);
       }
     };
@@ -180,7 +129,7 @@ export default function Items({ children }: { children?: React.ReactNode }) {
     return () => {
       window.removeEventListener("itemUpdate", handleItemUpdate);
     };
-  }, []);
+  }, [projectId]);
 
   return (
     <ItemContext.Provider value={{ items, setItems }}>
