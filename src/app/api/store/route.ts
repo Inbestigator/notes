@@ -19,7 +19,5 @@ export async function GET(req: NextRequest) {
   const { downloadUrl } = await copy(id, id, {
     access: "public",
   });
-
-  const res = await fetch(downloadUrl);
-  return new NextResponse(res.body, { status: res.status });
+  return NextResponse.redirect(downloadUrl);
 }

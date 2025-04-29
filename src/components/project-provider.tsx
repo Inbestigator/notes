@@ -45,7 +45,6 @@ export default function ProjectProvider({
   const [projects, setProjects] = useState<Project[]>([]);
   const [initialOffset, setInitialOffset] = useState({ x: 0, y: 0 });
   const searchParams = useSearchParams();
-  const projectId = currentProject?.id;
 
   const changeProject = useCallback((id: string) => {
     const projects = Object.entries(localStorage)
@@ -139,7 +138,7 @@ export default function ProjectProvider({
     )
       return;
     localStorage.setItem(
-      `project-${projectId}`,
+      `project-${currentProject.id}`,
       JSON.stringify({
         ...currentProject,
         plugins: new Set(Object.values(currentProject.items).map((i) => i.type))
@@ -148,7 +147,7 @@ export default function ProjectProvider({
           .toArray(),
       }),
     );
-  }, [projectId, currentProject]);
+  }, [currentProject]);
 
   useEffect(() => {
     const handleProjectUpdate = (e: Event) => {

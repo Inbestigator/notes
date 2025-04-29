@@ -11,6 +11,7 @@ import {
   encryptData,
   generateEncryptionKey,
 } from "@/lib/encryption";
+import { upload } from "@vercel/blob/client";
 
 export default memo(function SettingsDialog({
   open,
@@ -51,7 +52,10 @@ export default memo(function SettingsDialog({
     return {
       type: "organote",
       version: 2,
-      project,
+      project: {
+        ...project,
+        offset: { x: 0, y: 0 },
+      },
       files,
     };
   }
@@ -116,16 +120,17 @@ export default memo(function SettingsDialog({
                   iv,
                   new Uint8Array(encryptedBuffer),
                 );
-                const res = await fetch("/api/store", {
-                  method: "POST",
-                  body: combinedBuffer,
-                  headers: {
-                    "Content-Type": "application/octet-stream",
-                  },
-                });
-                const id = await res.text();
-
-                setSharelink(location.origin + `/#s=${id},${key}`);
+                try {
+                  const { pathname } = await upload(
+                    project.id,
+                    Buffer.from(combinedBuffer),
+                    {
+                      access: "public",
+                      handleUploadUrl: "/api/store/upload",
+                    },
+                  );
+                  setSharelink(location.origin + `/#s=${pathname},${key}`);
+                } catch {}
                 setIsExporting(false);
               }}
               className="group"
