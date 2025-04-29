@@ -127,6 +127,7 @@ export default memo(function SettingsDialog({
                     {
                       access: "public",
                       handleUploadUrl: "/api/store/upload",
+                      multipart: true,
                     },
                   );
                   setSharelink(location.origin + `/#s=${pathname},${key}`);
