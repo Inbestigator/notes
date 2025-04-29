@@ -129,7 +129,14 @@ export default function ProjectProvider({
       }
 
       const project = changeProject(searchId);
-      setInitialOffset(project.offset);
+      const initialX = Number(searchParams.get("x") ?? NaN);
+      const initialY = Number(searchParams.get("y") ?? NaN);
+
+      if (!isNaN(initialX) && !isNaN(initialY)) {
+        setInitialOffset({ x: initialX, y: initialY });
+      } else {
+        setInitialOffset(project.offset);
+      }
     }
     updateProject();
   }, [changeProject, searchParams]);

@@ -127,6 +127,7 @@ export default function Items({ children }: { children?: React.ReactNode }) {
               id={item.id}
               key={item.id}
               onDoubleClick={() => handleBringToFront(item.id, item.z)}
+              className="font-(family-name:--font-excalifont)"
             >
               <plugin.RenderedComponent id={item.id} item={item as never} />
             </div>

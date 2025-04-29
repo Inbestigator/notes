@@ -4,7 +4,7 @@ import type { BaseItem } from "@/components/items";
 import { NotebookText } from "lucide-react";
 import type { Plugin } from ".";
 import Sheet from "@/components/primitives/paper";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useDebouncedCallback } from "use-debounce";
 
 interface LinedPaper extends BaseItem {
@@ -33,6 +33,15 @@ function RenderedComponent({ id, item }: { id: string; item: LinedPaper }) {
   }, 150);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  function calcHeight() {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }
+
+  useEffect(calcHeight, []);
+
   return (
     <Sheet id={id}>
       <article className="inset-0 m-4 mt-6 h-160 w-xl overflow-scroll">
@@ -53,7 +62,7 @@ function RenderedComponent({ id, item }: { id: string; item: LinedPaper }) {
             }}
           />
           <textarea
-            className="min-h-150 w-full resize-none outline-none"
+            className="min-h-145 w-full resize-none text-base outline-none"
             style={{
               backgroundPositionY: "calc(1lh - 2px)",
               backgroundSize: "100% 1lh",
@@ -62,10 +71,7 @@ function RenderedComponent({ id, item }: { id: string; item: LinedPaper }) {
             }}
             onChange={(e) => {
               debouncedDetails(item.title, e.target.value);
-              if (textareaRef.current)
-                textareaRef.current.style.height = "auto";
-              if (textareaRef.current)
-                textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+              calcHeight();
             }}
             defaultValue={item.content}
             ref={textareaRef}
