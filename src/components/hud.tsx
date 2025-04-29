@@ -12,14 +12,15 @@ import { ClassValue } from "clsx";
 import Link from "next/link";
 import SettingsDialog from "./settings-dialog";
 
+const baseButtonClasses: ClassValue =
+  "hover:bg-foreground/10 flex items-center justify-center rounded-lg p-2 transition-all first:rounded-t-full last:rounded-b-full";
+
 export default function HUD() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const { projects, currentProject } = useProject();
   const searchParams = useSearchParams();
   const offset = usePanOffset();
-  const baseButtonClasses: ClassValue =
-    "hover:bg-foreground/10 flex items-center justify-center rounded-lg p-2 transition-all first:rounded-t-full last:rounded-b-full";
 
   useEffect(() => {
     function handleDeleteClick(e: MouseEvent) {
@@ -96,19 +97,12 @@ export default function HUD() {
         className="bg-background/50 absolute top-1/2 right-2 flex -translate-y-1/2 flex-col rounded-full shadow-sm backdrop-blur-3xl"
         data-pannable
       >
-        <Plugins
-          baseButtonClasses={baseButtonClasses}
-          offset={offset}
-          searchParams={searchParams}
-        />
-        <hr className="bg-foreground/10" />
-        <ProjectSelector
-          baseButtonClasses={baseButtonClasses}
-          projects={projects}
-        />
+        <Plugins offset={offset} searchParams={searchParams} />
+        <hr className="border-foreground/10" />
+        <ProjectSelector projects={projects} />
         <button
           title="Settings"
-          className={baseButtonClasses}
+          className={baseButtonClasses as string}
           onClick={() => setIsSettingsOpen(!isSettingsOpen)}
           data-pannable
         >
@@ -137,12 +131,10 @@ export default function HUD() {
   );
 }
 
-function Plugins({
-  baseButtonClasses,
+const Plugins = memo(function Plugins({
   offset,
   searchParams,
 }: {
-  baseButtonClasses: ClassValue;
   offset: { x: number; y: number };
   searchParams: URLSearchParams;
 }) {
@@ -156,21 +148,18 @@ function Plugins({
 
     if (!plugin) return;
 
+    const pluginDimensions = (typeof plugin.dimensions === "function"
+      ? plugin.dimensions(variant)
+      : plugin.dimensions) ?? { width: 0, height: 0 };
+
     window.dispatchEvent(
       new CustomEvent("itemCreate", {
         detail: {
           id,
           type,
           offset: {
-            x:
-              window.innerWidth -
-              (plugin.dimensions?.width ?? 0) -
-              52 -
-              offset.x,
-            y:
-              window.innerHeight / 2 -
-              (plugin.dimensions?.height ?? 0) / 2 -
-              offset.y,
+            x: window.innerWidth - pluginDimensions.width - 52 - offset.x,
+            y: window.innerHeight / 2 - pluginDimensions.height / 2 - offset.y,
           },
           z: 0,
           variant,
@@ -180,7 +169,11 @@ function Plugins({
     );
   }
 
-  function PluginButton({ plugin }: { plugin: (typeof plugins)[number] }) {
+  const PluginButton = memo(function PluginButton({
+    plugin,
+  }: {
+    plugin: (typeof plugins)[number];
+  }) {
     const [variant, setVariant] = useState(1);
 
     if (!plugin.HudComponent) return null;
@@ -189,7 +182,7 @@ function Plugins({
       <button
         key={plugin.name}
         title={`New ${plugin.displayName ?? plugin.name}`}
-        className={baseButtonClasses as string}
+        className={baseButtonClasses}
         onContextMenu={(e) => {
           e.preventDefault();
           setVariant((prev) => (prev % (plugin.numVariants ?? 1)) + 1);
@@ -200,21 +193,15 @@ function Plugins({
         <plugin.HudComponent variant={variant} />
       </button>
     );
-  }
+  });
 
   return plugins
     .filter((p) => p.isRequired || searchParams.has("p:" + p.name))
     .map((plugin) => <PluginButton key={plugin.name} plugin={plugin} />);
-}
+});
 
 const ProjectSelector = memo(
-  function ProjectSelector({
-    baseButtonClasses,
-    projects,
-  }: {
-    baseButtonClasses: ClassValue;
-    projects: Project[];
-  }) {
+  function ProjectSelector({ projects }: { projects: Project[] }) {
     const [isSelectorOpen, setIsSelectorOpen] = useState(false);
 
     return (
@@ -232,12 +219,7 @@ const ProjectSelector = memo(
             {projects.map((p) => (
               <Link
                 key={p.id}
-                href={`?i=${p.id}${p.plugins
-                  .filter(
-                    (p) => !plugins.find((p2) => p2.name === p)?.isRequired,
-                  )
-                  .map((p) => `&p:${p}`)
-                  .join("")}`}
+                href={`?i=${p.id}${p.plugins.map((p) => `&p:${p}`).join("")}`}
                 className={cn(
                   baseButtonClasses,
                   "justify-start rounded-lg! text-nowrap",

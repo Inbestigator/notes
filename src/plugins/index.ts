@@ -9,7 +9,12 @@ export interface Plugin<T> {
   displayName?: string;
   isRequired?: boolean;
   numVariants?: number;
-  dimensions?: { width: number; height: number };
+  dimensions?:
+    | ((variant: number) => { width: number; height: number })
+    | {
+        width: number;
+        height: number;
+      };
   defaultProps?: ((variant: number) => Partial<T>) | Partial<T>;
   HudComponent?: ({ variant }: { variant: number }) => React.ReactElement;
   RenderedComponent: ({

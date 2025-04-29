@@ -16,6 +16,10 @@ export default {
   name: "header",
   displayName: "Header",
   numVariants: 3,
+  dimensions: (variant) => ({
+    width: variant === 1 ? 704.667 : variant === 2 ? 433.667 : 295,
+    height: variant === 1 ? 74 : variant === 2 ? 52 : 44,
+  }),
   HudComponent: ({ variant }) =>
     variant === 1 ? (
       <Heading1 className="size-5" />

@@ -9,12 +9,13 @@ const ItemWrapper = memo(function ItemWrapper({
   children,
   className,
   tabClassName,
+  ...props
 }: {
   id: string;
   children: React.ReactNode;
   className?: string;
   tabClassName?: ClassValue;
-}) {
+} & React.HTMLAttributes<HTMLDivElement>) {
   const { currentProject } = useProject();
   const { isDragging, localOffset, handleMouseDown } = useDrag(
     currentProject.items[id].offset,
@@ -26,6 +27,7 @@ const ItemWrapper = memo(function ItemWrapper({
 
   return (
     <div
+      {...props}
       style={{ transform: `translate(${localOffset.x}px, ${localOffset.y}px)` }}
       className={cn(
         "group absolute cursor-default overflow-hidden rounded-sm shadow-lg transition-none duration-300 ease-in-out [transition:border-radius_150ms_cubic-bezier(0.4,0,0.2,1)] hover:rounded-br-4xl",

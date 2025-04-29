@@ -12,6 +12,7 @@ import { nanoid } from "nanoid";
 import { BaseItem } from "./items";
 import { openFileDB } from "@/lib/db";
 import { Loader2 } from "lucide-react";
+import plugins from "@/plugins";
 
 export interface Project {
   id: string;
@@ -124,6 +125,7 @@ export default function ProjectProvider({
         ...currentProject,
         plugins: new Set(Object.values(currentProject.items).map((i) => i.type))
           .values()
+          .filter((ps) => !plugins.find((p) => p.name === ps)?.isRequired)
           .toArray(),
       }),
     );
