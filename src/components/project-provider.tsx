@@ -111,6 +111,7 @@ export default function ProjectProvider({
           );
           const params = new URLSearchParams(searchParams);
           params.set("i", downloadedProject.id);
+          params.delete("e");
           window.history.replaceState(
             null,
             "",
