@@ -62,7 +62,7 @@ function RenderedComponent({ id, item }: { id: string; item: LinedPaper }) {
             }}
           />
           <textarea
-            className="min-h-145 w-full resize-none text-base outline-none"
+            className="min-h-150 w-full resize-none text-base outline-none"
             style={{
               backgroundPositionY: "calc(1lh - 2px)",
               backgroundSize: "100% 1lh",
