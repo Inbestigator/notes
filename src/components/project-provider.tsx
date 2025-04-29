@@ -13,6 +13,7 @@ import { BaseItem } from "./items";
 import { openFileDB } from "@/lib/db";
 import { Loader2 } from "lucide-react";
 import plugins from "@/plugins";
+import { decryptData, splitBuffers } from "@/lib/encryption";
 
 export interface Project {
   id: string;
@@ -70,11 +71,29 @@ export default function ProjectProvider({
   useEffect(() => {
     async function updateProject() {
       const searchId = searchParams.get("i");
-      const externalDownload = searchParams.get("e");
+      let externalDownload = searchParams.get("e");
+      let key: string | null = null;
+      const hash = location.hash;
+
+      if (!externalDownload && hash.startsWith("#s=")) {
+        const [id, k] = hash.slice("#s=".length).split(",");
+        externalDownload = `/api/store?id=${id}`;
+        key = k;
+      }
 
       if (externalDownload) {
         const res = await fetch(externalDownload);
-        const json = await res.json();
+        if (!res.ok) return;
+        let json;
+        const arrayBuffer = await res.arrayBuffer();
+        const [iv, encrypted] = splitBuffers(new Uint8Array(arrayBuffer));
+        if (key) {
+          const decrypted = await decryptData(iv, encrypted, key);
+          const decoded = new TextDecoder().decode(decrypted);
+          json = JSON.parse(decoded);
+        } else {
+          json = await res.json();
+        }
         if (json.type === "organote") {
           const downloadedProject = json.project as Project;
           if (json.version === 2) {

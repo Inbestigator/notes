@@ -4,8 +4,13 @@ import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import type { Project } from "./project-provider";
 import { memo, useEffect, useState } from "react";
-import { Download } from "lucide-react";
+import { Copy, Download, UploadCloud } from "lucide-react";
 import { openFileDB } from "@/lib/db";
+import {
+  concatBuffers,
+  encryptData,
+  generateEncryptionKey,
+} from "@/lib/encryption";
 
 export default memo(function SettingsDialog({
   open,
@@ -19,12 +24,37 @@ export default memo(function SettingsDialog({
   project?: Project;
 }) {
   const [title, setTitle] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
+  const [shareLink, setSharelink] = useState<string | null>(null);
+  const [isCopied, setIsCopied] = useState(false);
 
   useEffect(() => {
     setTitle(project?.title ?? "");
   }, [project]);
 
   if (!project) return null;
+
+  async function exportProject() {
+    const db = await openFileDB();
+    const files: Record<string, Record<string, unknown>> = {};
+
+    for (const store of db.objectStoreNames) {
+      const tx = db.transaction(store, "readonly");
+      const filesOfType: Record<string, unknown> = {};
+      const allKeys = await tx.store.getAllKeys();
+      for (const key of allKeys) {
+        filesOfType[key.toString()] = await tx.store.get(key);
+      }
+      files[store] = filesOfType;
+    }
+
+    return {
+      type: "organote",
+      version: 2,
+      project,
+      files,
+    };
+  }
 
   return (
     <div
@@ -46,43 +76,77 @@ export default memo(function SettingsDialog({
             onChange={(e) => setTitle(e.target.value)}
             value={title}
           />
-          <Button
-            onClick={async () => {
-              const a = document.createElement("a");
-              const db = await openFileDB();
-              const files: Record<string, Record<string, unknown>> = {};
-              for (const store of db.objectStoreNames) {
-                const tx = db.transaction(store, "readonly");
-                const filesOfType: Record<string, unknown> = {};
-                const allKeys = await tx.store.getAllKeys();
-                for (const key of allKeys) {
-                  filesOfType[key.toString()] = await tx.store.get(key);
-                }
-                files[store] = filesOfType;
-              }
-              const blob = new Blob(
-                [
-                  JSON.stringify({
-                    type: "organote",
-                    version: 2,
-                    project,
-                    files,
-                  }),
-                ],
-                {
+          <div className="flex gap-2">
+            <Button
+              disabled={isExporting}
+              onClick={async () => {
+                setIsExporting(true);
+                const a = document.createElement("a");
+                const exported = await exportProject();
+                const blob = new Blob([JSON.stringify(exported)], {
                   type: "application/json",
-                },
-              );
-              a.href = URL.createObjectURL(blob);
-              a.download = `${project.title?.length ? project.title : project.id}.note`;
-              a.click();
-            }}
-            className="w-fit"
-            variant="secondary"
-          >
-            <Download />
-            Export project
-          </Button>
+                });
+                a.href = URL.createObjectURL(blob);
+                a.download = `${project.title?.length ? project.title : project.id}.note`;
+                a.click();
+                setIsExporting(false);
+              }}
+              className="w-fit"
+              variant="secondary"
+            >
+              <Download />
+              Export{isExporting && "ing"} project
+            </Button>
+            <Button
+              disabled={isExporting}
+              onClick={async () => {
+                if (shareLink) {
+                  window.navigator.clipboard.writeText(shareLink);
+                  setIsCopied(true);
+                  return;
+                }
+                setIsExporting(true);
+                const exported = await exportProject();
+                const key = await generateEncryptionKey();
+                const { encryptedBuffer, iv } = await encryptData(
+                  key,
+                  JSON.stringify(exported),
+                );
+                const combinedBuffer = concatBuffers(
+                  iv,
+                  new Uint8Array(encryptedBuffer),
+                );
+                const res = await fetch("/api/store", {
+                  method: "POST",
+                  body: combinedBuffer,
+                  headers: {
+                    "Content-Type": "application/octet-stream",
+                  },
+                });
+                const id = await res.text();
+
+                setSharelink(location.origin + `/#s=${id},${key}`);
+                setIsExporting(false);
+              }}
+              className="group"
+              variant="secondary"
+            >
+              {shareLink ? (
+                <>
+                  <Copy
+                    data-copied={isCopied}
+                    className="transition-all duration-300 data-[copied=false]:opacity-50"
+                  />
+                  {isCopied ? "Copied!" : "Click to copy link"}
+                </>
+              ) : (
+                <>
+                  <UploadCloud />
+                  {isExporting ? "Uploading" : "Share"} project
+                </>
+              )}
+            </Button>
+          </div>
         </div>
         <footer className="flex items-end justify-end">
           <Button
