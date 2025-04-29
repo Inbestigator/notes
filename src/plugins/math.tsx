@@ -4,7 +4,7 @@ import type { BaseItem } from "@/components/items";
 import type { Plugin } from ".";
 import { CalculatorIcon } from "lucide-react";
 import { useDebouncedCallback } from "use-debounce";
-import { memo, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import Script from "next/script";
 import Sheet from "@/components/primitives/paper";
 
@@ -30,7 +30,9 @@ const Calculator = memo(function Calculator({
   }, 150);
 
   function loadCalc() {
-    if (!calculatorRef.current || typeof Desmos === "undefined") return;
+    if (!calculatorRef.current || typeof Desmos === "undefined") {
+      setTimeout(loadCalc, 150);
+    }
     const calc = Desmos.GraphingCalculator(calculatorRef.current!, {
       keypad: false,
       border: false,
@@ -43,13 +45,13 @@ const Calculator = memo(function Calculator({
     calc.observeEvent("change", () => debouncedSave(calc.getState()));
   }
 
+  useEffect(loadCalc, [initial, debouncedSave]);
+
   return (
     <>
       <Script
         src="https://www.desmos.com/api/v1.11/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"
         crossOrigin="anonymous"
-        onReady={loadCalc}
-        onLoad={loadCalc}
       />
       <div ref={calculatorRef} className="h-96 w-2xl" />
     </>
