@@ -55,7 +55,7 @@ export default function ProjectProvider({
     if (!project) {
       project = {
         id,
-        lastModified: Date.now(),
+        lastModified: -1,
         offset: { x: 0, y: 0 },
         plugins: [],
         items: {},
@@ -109,10 +109,12 @@ export default function ProjectProvider({
             `project-${downloadedProject.id}`,
             JSON.stringify(downloadedProject),
           );
+          const params = new URLSearchParams(searchParams);
+          params.set("i", downloadedProject.id);
           window.history.replaceState(
             null,
             "",
-            `?i=${downloadedProject.id}${downloadedProject.plugins.map((p: string) => `&p:${p}`).join("")}`,
+            `?${params.toString()}${downloadedProject.plugins.map((p: string) => `&p:${p}`).join("")}`,
           );
           return;
         }
@@ -134,20 +136,24 @@ export default function ProjectProvider({
   useEffect(() => {
     if (
       !currentProject ||
-      (!currentProject.title && Object.keys(currentProject.items).length === 0)
+      (!currentProject.title &&
+        Object.keys(currentProject.items).length === 0 &&
+        currentProject.lastModified === -1) ||
+      searchParams.has("!ls")
     )
       return;
     localStorage.setItem(
       `project-${currentProject.id}`,
       JSON.stringify({
         ...currentProject,
+        lastModified: Date.now(),
         plugins: new Set(Object.values(currentProject.items).map((i) => i.type))
           .values()
           .filter((ps) => !plugins.find((p) => p.name === ps)?.isRequired)
           .toArray(),
       }),
     );
-  }, [currentProject]);
+  }, [currentProject, searchParams]);
 
   useEffect(() => {
     const handleProjectUpdate = (e: Event) => {

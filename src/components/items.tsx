@@ -17,7 +17,6 @@ export interface BaseItem {
 export default function Items({ children }: { children?: React.ReactNode }) {
   const { currentProject, setCurrentProject } = useProject();
   const searchParams = useSearchParams();
-  const projectId = searchParams.get("i");
 
   const updateItem = useCallback(
     (
@@ -111,7 +110,7 @@ export default function Items({ children }: { children?: React.ReactNode }) {
       window.removeEventListener("itemUpdate", handleItemUpdate);
       window.removeEventListener("itemDelete", handleItemDelete);
     };
-  }, [projectId, setCurrentProject, updateItem]);
+  }, [setCurrentProject, updateItem]);
 
   return (
     <>
