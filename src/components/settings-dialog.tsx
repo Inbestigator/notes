@@ -126,7 +126,7 @@ export default memo(function SettingsDialog({
                     Buffer.from(combinedBuffer),
                     {
                       access: "public",
-                      handleUploadUrl: "/api/store/upload",
+                      handleUploadUrl: "/api/store",
                       multipart: true,
                     },
                   );
