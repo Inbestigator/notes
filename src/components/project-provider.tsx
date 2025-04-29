@@ -84,9 +84,9 @@ export default function ProjectProvider({
         const res = await fetch(externalDownload);
         if (!res.ok) return;
         let json;
-        const arrayBuffer = await res.arrayBuffer();
-        const [iv, encrypted] = splitBuffers(new Uint8Array(arrayBuffer));
         if (key) {
+          const arrayBuffer = await res.arrayBuffer();
+          const [iv, encrypted] = splitBuffers(new Uint8Array(arrayBuffer));
           const decrypted = await decryptData(iv, encrypted, key);
           const decoded = new TextDecoder().decode(decrypted);
           json = JSON.parse(decoded);
