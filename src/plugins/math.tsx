@@ -30,6 +30,7 @@ const Calculator = memo(function Calculator({
   }, 150);
 
   function loadCalc() {
+    if (!calculatorRef.current || typeof Desmos === "undefined") return;
     const calc = Desmos.GraphingCalculator(calculatorRef.current!, {
       keypad: false,
       border: false,
