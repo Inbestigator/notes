@@ -18,10 +18,7 @@ export default function Home() {
       }
     >
       <ProjectProvider>
-        <PanContainer>
-          <Items />
-          <HUD />
-        </PanContainer>
+        <PanContainer>{{ main: <Items />, hud: <HUD /> }}</PanContainer>
       </ProjectProvider>
     </Suspense>
   );

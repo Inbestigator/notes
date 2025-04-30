@@ -8,7 +8,7 @@ export default function useDrag(
   const [localOffset, setLocalOffset] = useState(startOffset);
   const [isDragging, setIsDragging] = useState(false);
   const localOffsetRef = useRef(localOffset);
-  const globalOffset = usePanOffset();
+  const { offset } = usePanOffset();
 
   useEffect(() => {
     localOffsetRef.current = localOffset;
@@ -19,13 +19,11 @@ export default function useDrag(
       const target = mde.target as HTMLDivElement;
       const newOffset = {
         x:
-          mme.clientX -
-          globalOffset.x -
+          (mme.clientX - offset.x) / offset.z -
           target.offsetLeft -
           target.offsetWidth / 2,
         y:
-          mme.clientY -
-          globalOffset.y -
+          (mme.clientY - offset.y) / offset.z -
           target.offsetTop -
           target.offsetHeight / 2,
       };

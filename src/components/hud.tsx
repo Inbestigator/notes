@@ -1,8 +1,13 @@
 "use client";
 
-import { PackageOpen, Settings2, Shredder } from "lucide-react";
-import { useProject, type Project } from "./project-provider";
-import { usePanOffset } from "./pan-container";
+import {
+  Fullscreen,
+  PackageOpen,
+  Settings2,
+  Shredder,
+  Shrink,
+} from "lucide-react";
+import { useProject } from "./project-provider";
 import { memo, useEffect, useState } from "react";
 import { motion } from "motion/react";
 import plugins from "@/plugins";
@@ -11,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { ClassValue } from "clsx";
 import Link from "next/link";
 import SettingsDialog from "./settings-dialog";
+import { usePanOffset } from "./pan-container";
 
 const baseButtonClasses: ClassValue =
   "hover:bg-foreground/10 flex items-center justify-center rounded-lg p-2 transition-all first:rounded-t-full last:rounded-b-full";
@@ -18,9 +24,7 @@ const baseButtonClasses: ClassValue =
 export default function HUD() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const { projects, currentProject } = useProject();
   const searchParams = useSearchParams();
-  const offset = usePanOffset();
 
   useEffect(() => {
     function handleDeleteClick(e: MouseEvent) {
@@ -57,19 +61,7 @@ export default function HUD() {
   return (
     <>
       <div
-        data-visible={offset.x === 0 && offset.y === 0 && !isDeleting}
-        className="bg-background/50 absolute top-2 left-1/2 -translate-x-1/2 cursor-default rounded-full p-2 text-center text-sm text-nowrap backdrop-blur-3xl transition-all data-[visible=false]:pointer-events-none data-[visible=false]:opacity-0"
-      >
-        Scroll on the trackpad or drag while middle-clicking to pan
-        <br />
-        Double-click an item to bring it to the front
-      </div>
-      <div
         data-visible={isDeleting}
-        style={{
-          transform: `translate(${-offset.x}px, ${-offset.y}px)`,
-          willChange: "transform",
-        }}
         className="bg-background/50 absolute top-2 left-1/2 -translate-x-1/2 cursor-default rounded-full p-2 text-center text-sm text-nowrap shadow-sm backdrop-blur-3xl transition-opacity data-[visible=false]:pointer-events-none data-[visible=false]:opacity-0"
       >
         Click an item to delete it, or click the delete button again to cancel
@@ -77,10 +69,6 @@ export default function HUD() {
       <motion.div
         data-pannable
         data-visible={isDeleting}
-        style={{
-          transform: `translate(${-offset.x}px, ${-offset.y}px)`,
-          willChange: "transform",
-        }}
         initial={false}
         animate={{
           backgroundImage: isDeleting
@@ -90,16 +78,12 @@ export default function HUD() {
         className="pointer-events-none absolute h-dvh w-dvw opacity-60"
       />
       <nav
-        style={{
-          transform: `translate(${-offset.x}px, ${-offset.y}px)`,
-          willChange: "transform",
-        }}
         className="bg-background/50 absolute top-1/2 right-2 flex -translate-y-1/2 flex-col rounded-full shadow-sm backdrop-blur-3xl"
         data-pannable
       >
-        <Plugins offset={offset} searchParams={searchParams} />
+        <Plugins searchParams={searchParams} />
         <hr className="border-foreground/10" />
-        <ProjectSelector projects={projects} />
+        <ProjectSelector />
         <button
           title="Settings"
           className={baseButtonClasses as string}
@@ -121,21 +105,20 @@ export default function HUD() {
           <Shredder className="size-5" />
         </button>
       </nav>
-      <SettingsDialog
-        offset={offset}
-        open={isSettingsOpen}
-        setOpen={setIsSettingsOpen}
-        project={currentProject}
-      />
+      <nav
+        className="bg-background/50 absolute right-2 bottom-2 flex flex-col rounded-full shadow-sm backdrop-blur-3xl"
+        data-pannable
+      >
+        <ResetZoom />
+      </nav>
+      <SettingsDialog open={isSettingsOpen} setOpen={setIsSettingsOpen} />
     </>
   );
 }
 
 const Plugins = memo(function Plugins({
-  offset,
   searchParams,
 }: {
-  offset: { x: number; y: number };
   searchParams: URLSearchParams;
 }) {
   function addItem(type: string, variant: number) {
@@ -157,10 +140,8 @@ const Plugins = memo(function Plugins({
         detail: {
           id,
           type,
-          offset: {
-            x: window.innerWidth - pluginDimensions.width - 52 - offset.x,
-            y: window.innerHeight / 2 - pluginDimensions.height / 2 - offset.y,
-          },
+          dimensions: pluginDimensions,
+          deductGlobalOffset: true,
           z: 0,
           variant,
           ...defaultProps,
@@ -200,44 +181,64 @@ const Plugins = memo(function Plugins({
     .map((plugin) => <PluginButton key={plugin.name} plugin={plugin} />);
 });
 
-const ProjectSelector = memo(
-  function ProjectSelector({ projects }: { projects: Project[] }) {
-    const [isSelectorOpen, setIsSelectorOpen] = useState(false);
+function ProjectSelector() {
+  const { projects } = useProject();
+  const [isSelectorOpen, setIsSelectorOpen] = useState(false);
 
-    return (
-      <div className="relative">
-        <button
-          title="Projects"
-          className={cn(baseButtonClasses, "rounded-lg!")}
-          onClick={() => setIsSelectorOpen(!isSelectorOpen)}
-          data-pannable
-        >
-          <PackageOpen className="size-5" />
-        </button>
-        {isSelectorOpen && (
-          <nav className="bg-background/50 absolute top-0 right-full min-w-32 origin-top-right -translate-x-2 rounded-lg shadow-sm backdrop-blur-3xl">
-            {projects.map((p) => (
-              <Link
-                key={p.id}
-                href={`?i=${p.id}${p.plugins.map((p) => `&p:${p}`).join("")}`}
-                className={cn(
-                  baseButtonClasses,
-                  "justify-start rounded-lg! text-nowrap",
-                )}
-                data-pannable
-              >
-                {p.title?.length ? p.title : "Untitled Project"}
-              </Link>
-            ))}
-          </nav>
-        )}
-      </div>
-    );
-  },
-  (prev, next) =>
-    prev.projects.length === next.projects.length &&
-    next.projects.every(
-      (p, i) =>
-        p.id === prev.projects[i].id && p.title === prev.projects[i].title,
-    ),
-);
+  return (
+    <div className="relative">
+      <button
+        title="Projects"
+        className={cn(baseButtonClasses, "rounded-lg!")}
+        onClick={() => setIsSelectorOpen(!isSelectorOpen)}
+        data-pannable
+      >
+        <PackageOpen className="size-5" />
+      </button>
+      {isSelectorOpen && (
+        <nav className="bg-background/50 absolute top-0 right-full min-w-32 origin-top-right -translate-x-2 rounded-lg shadow-sm backdrop-blur-3xl">
+          {projects.map((p) => (
+            <Link
+              key={p.id}
+              href={`?i=${p.id}${p.plugins.map((p) => `&p:${p}`).join("")}`}
+              className={cn(
+                baseButtonClasses,
+                "justify-start rounded-lg! text-nowrap",
+              )}
+              data-pannable
+            >
+              {p.title?.length ? p.title : "Untitled Project"}
+            </Link>
+          ))}
+        </nav>
+      )}
+    </div>
+  );
+}
+
+function ResetZoom() {
+  const { setOffset, offset } = usePanOffset();
+
+  return (
+    <button
+      title={offset.z !== 1 ? "Reset zoom" : "Reset position"}
+      className={cn(
+        baseButtonClasses,
+        "rounded-full data-[hidden=true]:hidden",
+      )}
+      onClick={() =>
+        setOffset((p) =>
+          offset.z !== 1 ? { ...p, z: 1 } : { x: 0, y: 0, z: 1 },
+        )
+      }
+      data-hidden={offset.x === 0 && offset.y === 0 && offset.z === 1}
+      data-pannable
+    >
+      {offset.z !== 1 ? (
+        <Fullscreen className="size-5" />
+      ) : (
+        <Shrink className="size-5" />
+      )}
+    </button>
+  );
+}

@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import plugins from "@/plugins";
 import { openFileDB } from "@/lib/db";
 import { useProject } from "./project-provider";
+import { usePanOffset } from "./pan-container";
 
 export interface BaseItem {
   id: string;
@@ -14,9 +15,51 @@ export interface BaseItem {
   variant: number;
 }
 
-export default function Items({ children }: { children?: React.ReactNode }) {
-  const { currentProject, setCurrentProject } = useProject();
+export default function Items() {
+  const { currentProject } = useProject();
   const searchParams = useSearchParams();
+  useItemManager();
+
+  function handleBringToFront(id: string, currentZ: number) {
+    const highest = Math.max(
+      ...Object.values(currentProject.items).map((i) => i.z),
+    );
+    window.dispatchEvent(
+      new CustomEvent("itemUpdate", {
+        detail: {
+          id,
+          partial: {
+            z: highest > currentZ || highest === 0 ? highest + 1 : currentZ,
+          },
+        },
+      }),
+    );
+  }
+
+  return Object.values(currentProject.items)
+    .sort((a, b) => a.z - b.z)
+    .map((item) => {
+      const plugin = plugins
+        .filter((p) => p.isRequired || searchParams.has("p:" + p.name))
+        .find((p) => p.name === item.type);
+      if (!plugin) return null;
+
+      return (
+        <div
+          id={item.id}
+          key={item.id}
+          onDoubleClick={() => handleBringToFront(item.id, item.z)}
+          className="font-(family-name:--font-excalifont)"
+        >
+          <plugin.RenderedComponent id={item.id} item={item as never} />
+        </div>
+      );
+    });
+}
+
+function useItemManager() {
+  const { setCurrentProject } = useProject();
+  const { offset } = usePanOffset();
 
   const updateItem = useCallback(
     (
@@ -43,23 +86,30 @@ export default function Items({ children }: { children?: React.ReactNode }) {
     [setCurrentProject],
   );
 
-  function handleBringToFront(id: string, currentZ: number) {
-    updateItem(id, (i) => {
-      const highest = Math.max(...Object.values(i).map((i) => i.z));
-      return {
-        z: highest > currentZ || highest === 0 ? highest + 1 : currentZ,
-      };
-    });
-  }
-
   useEffect(() => {
     const handleItemCreate = (e: Event) => {
       if (e instanceof CustomEvent) {
         if (!e.detail || !e.detail.id) return;
         setCurrentProject((prev) => {
           const newItems = { ...prev.items };
+          const { deductGlobalOffset, dimensions, ...item } =
+            e.detail as BaseItem & {
+              deductGlobalOffset?: boolean;
+              dimensions?: { width: number; height: number };
+            };
           newItems[e.detail.id] = {
             ...e.detail,
+            offset:
+              deductGlobalOffset && dimensions
+                ? {
+                    x:
+                      -dimensions.width +
+                      (window.innerWidth - 52 - offset.x) / offset.z,
+                    y:
+                      -dimensions.height / 2 +
+                      (window.innerHeight / 2 - offset.y) / offset.z,
+                  }
+                : item.offset,
           };
           const highest = Math.max(...Object.values(newItems).map((i) => i.z));
           newItems[e.detail.id].z =
@@ -110,30 +160,5 @@ export default function Items({ children }: { children?: React.ReactNode }) {
       window.removeEventListener("itemUpdate", handleItemUpdate);
       window.removeEventListener("itemDelete", handleItemDelete);
     };
-  }, [setCurrentProject, updateItem]);
-
-  return (
-    <>
-      {Object.values(currentProject.items)
-        .sort((a, b) => a.z - b.z)
-        .map((item) => {
-          const plugin = plugins
-            .filter((p) => p.isRequired || searchParams.has("p:" + p.name))
-            .find((p) => p.name === item.type);
-          if (!plugin) return null;
-
-          return (
-            <div
-              id={item.id}
-              key={item.id}
-              onDoubleClick={() => handleBringToFront(item.id, item.z)}
-              className="font-(family-name:--font-excalifont)"
-            >
-              <plugin.RenderedComponent id={item.id} item={item as never} />
-            </div>
-          );
-        })}
-      {children}
-    </>
-  );
+  }, [setCurrentProject, updateItem, offset.x, offset.y, offset.z]);
 }

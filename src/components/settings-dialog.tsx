@@ -2,8 +2,8 @@
 
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import type { Project } from "./project-provider";
-import { memo, useEffect, useState } from "react";
+import { useProject } from "./project-provider";
+import { useState } from "react";
 import { Copy, Download, UploadCloud } from "lucide-react";
 import { openFileDB } from "@/lib/db";
 import {
@@ -12,26 +12,25 @@ import {
   generateEncryptionKey,
 } from "@/lib/encryption";
 import { upload } from "@vercel/blob/client";
+import { useDebouncedCallback } from "use-debounce";
 
-export default memo(function SettingsDialog({
+export default function SettingsDialog({
   open,
   setOpen,
-  offset,
-  project,
 }: {
   open: boolean;
   setOpen: (open: boolean) => void;
-  offset: { x: number; y: number };
-  project?: Project;
 }) {
-  const [title, setTitle] = useState("");
-  const [isExporting, setIsExporting] = useState(false);
+  const [isExporting, setIsExporting] = useState<false | "export" | "share">(
+    false,
+  );
   const [shareLink, setSharelink] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
-
-  useEffect(() => {
-    setTitle(project?.title ?? "");
-  }, [project]);
+  const { currentProject: project, setCurrentProject } = useProject();
+  const debouncedTitle = useDebouncedCallback(
+    (title) => setCurrentProject((p) => ({ ...p, title })),
+    150,
+  );
 
   if (!project) return null;
 
@@ -54,7 +53,7 @@ export default memo(function SettingsDialog({
       version: 2,
       project: {
         ...project,
-        offset: { x: 0, y: 0 },
+        offset: { x: 0, y: 0, z: 1 },
       },
       files,
     };
@@ -63,7 +62,6 @@ export default memo(function SettingsDialog({
   return (
     <div
       data-visible={open}
-      style={{ transform: `translate(${-offset.x}px, ${-offset.y}px)` }}
       className="absolute top-1/2 left-1/2 flex h-dvh w-dvw -translate-x-1/2 -translate-y-1/2 cursor-default items-center justify-center backdrop-blur-xl transition-all data-[visible=false]:pointer-events-none data-[visible=false]:opacity-0"
       onClick={() => setOpen(false)}
     >
@@ -77,14 +75,14 @@ export default memo(function SettingsDialog({
           <Input
             type="text"
             placeholder="Project title"
-            onChange={(e) => setTitle(e.target.value)}
-            value={title}
+            onChange={(e) => debouncedTitle(e.target.value)}
+            defaultValue={project.title}
           />
           <div className="flex gap-2">
             <Button
-              disabled={isExporting}
+              disabled={!!isExporting}
               onClick={async () => {
-                setIsExporting(true);
+                setIsExporting("export");
                 const a = document.createElement("a");
                 const exported = await exportProject();
                 const blob = new Blob([JSON.stringify(exported)], {
@@ -99,17 +97,17 @@ export default memo(function SettingsDialog({
               variant="secondary"
             >
               <Download />
-              Export{isExporting && "ing"} project
+              Export{isExporting === "export" && "ing"} project
             </Button>
             <Button
-              disabled={isExporting}
+              disabled={!!isExporting}
               onClick={async () => {
                 if (shareLink) {
                   window.navigator.clipboard.writeText(shareLink);
                   setIsCopied(true);
                   return;
                 }
-                setIsExporting(true);
+                setIsExporting("share");
                 const exported = await exportProject();
                 const key = await generateEncryptionKey();
                 const { encrypted, iv } = await encryptData(
@@ -148,27 +146,16 @@ export default memo(function SettingsDialog({
               ) : (
                 <>
                   <UploadCloud />
-                  {isExporting ? "Uploading" : "Share"} project
+                  {isExporting === "share" ? "Uploading" : "Share"} project
                 </>
               )}
             </Button>
           </div>
         </div>
         <footer className="flex items-end justify-end">
-          <Button
-            onClick={() => {
-              window.dispatchEvent(
-                new CustomEvent("projectUpdate", {
-                  detail: { id: project?.id, partial: { title } },
-                }),
-              );
-              setOpen(!open);
-            }}
-          >
-            Save changes
-          </Button>
+          <Button onClick={() => setOpen(false)}>Exit</Button>
         </footer>
       </div>
     </div>
   );
-});
+}

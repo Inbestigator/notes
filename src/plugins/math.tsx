@@ -29,24 +29,25 @@ const Calculator = memo(function Calculator({
     );
   }, 150);
 
-  function loadCalc() {
-    if (!calculatorRef.current || typeof Desmos === "undefined") {
-      setTimeout(loadCalc, 150);
-      return;
+  useEffect(() => {
+    function loadCalc() {
+      if (!calculatorRef.current || typeof Desmos === "undefined") {
+        setTimeout(loadCalc, 150);
+        return;
+      }
+      const calc = Desmos.GraphingCalculator(calculatorRef.current!, {
+        keypad: false,
+        border: false,
+      });
+      if (initial) {
+        calc.setState(initial);
+      } else {
+        calc.setBlank();
+      }
+      calc.observeEvent("change", () => debouncedSave(calc.getState()));
     }
-    const calc = Desmos.GraphingCalculator(calculatorRef.current!, {
-      keypad: false,
-      border: false,
-    });
-    if (initial) {
-      calc.setState(initial);
-    } else {
-      calc.setBlank();
-    }
-    calc.observeEvent("change", () => debouncedSave(calc.getState()));
-  }
-
-  useEffect(loadCalc, [initial, debouncedSave]);
+    loadCalc();
+  }, [initial, debouncedSave]);
 
   return (
     <>

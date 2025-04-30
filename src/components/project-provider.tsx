@@ -19,7 +19,7 @@ export interface Project {
   id: string;
   title?: string;
   lastModified: number;
-  offset: { x: number; y: number };
+  offset: { x: number; y: number; z: number };
   plugins: string[];
   items: Record<string, BaseItem>;
 }
@@ -43,7 +43,7 @@ export default function ProjectProvider({
 }) {
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [initialOffset, setInitialOffset] = useState({ x: 0, y: 0 });
+  const [initialOffset, setInitialOffset] = useState({ x: 0, y: 0, z: 1 });
   const searchParams = useSearchParams();
 
   const changeProject = useCallback((id: string) => {
@@ -56,7 +56,7 @@ export default function ProjectProvider({
       project = {
         id,
         lastModified: -1,
-        offset: { x: 0, y: 0 },
+        offset: { x: 0, y: 0, z: 1 },
         plugins: [],
         items: {},
       };
@@ -131,11 +131,16 @@ export default function ProjectProvider({
       const project = changeProject(searchId);
       const initialX = Number(searchParams.get("x") ?? NaN);
       const initialY = Number(searchParams.get("y") ?? NaN);
+      const initialZ = Number(searchParams.get("z") ?? NaN);
 
-      if (!isNaN(initialX) && !isNaN(initialY)) {
-        setInitialOffset({ x: initialX, y: initialY });
+      if (!isNaN(initialX) && !isNaN(initialY) && !isNaN(initialZ)) {
+        setInitialOffset({ x: initialX, y: initialY, z: initialZ });
       } else {
-        setInitialOffset(project.offset);
+        setInitialOffset({
+          x: project.offset.x ?? 0,
+          y: project.offset.y ?? 0,
+          z: project.offset.z ?? 1,
+        });
       }
     }
     updateProject();

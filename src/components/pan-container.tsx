@@ -12,26 +12,29 @@ import { useProject } from "./project-provider";
 
 const PanContext = createContext(
   {} as {
-    offset: { x: number; y: number };
-    setOffset: (offset: { x: number; y: number }) => void;
+    offset: { x: number; y: number; z: number };
+    setOffset: React.Dispatch<
+      React.SetStateAction<{
+        x: number;
+        y: number;
+        z: number;
+      }>
+    >;
   },
 );
 
 export function usePanOffset() {
-  return useContext(PanContext).offset;
-}
-export function useSetPanOffset() {
-  return useContext(PanContext).setOffset;
+  return useContext(PanContext);
 }
 
 export default function PanContainer({
   children,
 }: {
-  children: React.ReactNode;
+  children: { main: React.ReactNode; hud?: React.ReactNode };
 }) {
   const { setCurrentProject, initialOffset } = useProject();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [offset, setOffset] = useState({ x: 0, y: 0, z: 1 });
   const [hasStarted, setHasStarted] = useState(false);
   const wheelTimeoutRef = useRef<NodeJS.Timeout>(null);
   const isMiddleClicking = useRef(false);
@@ -52,20 +55,47 @@ export default function PanContainer({
     (e: WheelEvent) => {
       if (!containerRef.current) return;
 
-      const elUnderPointer = document.elementFromPoint(e.clientX, e.clientY);
-      if (!elUnderPointer?.hasAttribute("data-pannable") && !hasStarted) return;
+      const isZooming = e.ctrlKey;
 
-      setHasStarted(true);
-      e.preventDefault();
-      setOffset((prev) => ({
-        x: prev.x - e.deltaX / 1.25,
-        y: prev.y - e.deltaY / 1.25,
-      }));
+      if (!isZooming) {
+        const elUnderPointer = document.elementFromPoint(e.clientX, e.clientY);
+        if (!elUnderPointer?.hasAttribute("data-pannable") && !hasStarted)
+          return;
+        setHasStarted(true);
+        e.preventDefault();
 
-      if (wheelTimeoutRef.current) clearTimeout(wheelTimeoutRef.current);
-      wheelTimeoutRef.current = setTimeout(() => setHasStarted(false), 150);
+        setOffset((prev) => ({
+          x: prev.x - e.deltaX / 1.25,
+          y: prev.y - e.deltaY / 1.25,
+          z: prev.z,
+        }));
+
+        if (wheelTimeoutRef.current) clearTimeout(wheelTimeoutRef.current);
+        wheelTimeoutRef.current = setTimeout(() => setHasStarted(false), 150);
+      } else {
+        e.preventDefault();
+        const zoomFactor = 0.0015;
+        const newScale = Math.min(
+          2,
+          Math.max(0.25, offset.z * (1 - e.deltaY * zoomFactor)),
+        );
+
+        const rect = containerRef.current.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        setOffset((prevOffset) => {
+          const worldX = (mouseX - prevOffset.x) / prevOffset.z;
+          const worldY = (mouseY - prevOffset.y) / prevOffset.z;
+
+          const newOffsetX = mouseX - worldX * newScale;
+          const newOffsetY = mouseY - worldY * newScale;
+
+          return { x: newOffsetX, y: newOffsetY, z: newScale };
+        });
+      }
     },
-    [hasStarted],
+    [hasStarted, offset.z],
   );
 
   const handleMouseUpDown = useCallback((e: MouseEvent) => {
@@ -86,6 +116,7 @@ export default function PanContainer({
       setOffset((prev) => ({
         x: prev.x + dx,
         y: prev.y + dy,
+        z: prev.z,
       }));
 
       lastMousePos.current = { x: e.clientX, y: e.clientY };
@@ -115,6 +146,7 @@ export default function PanContainer({
       setOffset((prev) => ({
         x: prev.x + dx,
         y: prev.y + dy,
+        z: prev.z,
       }));
 
       lastMousePos.current = { x: touch.clientX, y: touch.clientY };
@@ -160,24 +192,27 @@ export default function PanContainer({
       <div
         data-pannable
         ref={containerRef}
-        className="absolute inset-0 cursor-move touch-none overflow-hidden bg-[size:32px] bg-clip-border" // touch-none prevents browser from interfering
+        className="absolute inset-0 cursor-move touch-none overflow-hidden bg-clip-border"
         style={{
           backgroundPosition: `${offset.x}px ${offset.y}px`,
+          backgroundSize: `${32 * offset.z}px`,
           backgroundImage: "url('/dots.png')",
           willChange: "background-position",
         }}
       >
         <div
           style={{
-            transform: `translate(${offset.x}px, ${offset.y}px)`,
+            transform: `translate(${offset.x}px, ${offset.y}px) scale(${offset.z})`,
+            transformOrigin: "top left",
             willChange: "transform",
           }}
           className="size-full"
           data-pannable
         >
-          {children}
+          {children.main}
         </div>
       </div>
+      {children.hud}
     </PanContext.Provider>
   );
 }
