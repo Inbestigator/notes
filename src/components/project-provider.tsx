@@ -67,6 +67,66 @@ export default function ProjectProvider({
     return project;
   }, []);
 
+  const loadJsonProject = useCallback(
+    async ({
+      type,
+      version,
+      project,
+      files,
+    }: {
+      type: string;
+      version: number;
+      project: Project;
+      files: Record<string, Record<string, unknown>>;
+    }) => {
+      if (type !== "organote" || !version || !project) return false;
+      if (version === 2) {
+        const db = await openFileDB();
+        for await (const [store, items] of Object.entries(files)) {
+          const tx = db.transaction(store, "readwrite");
+          for (const [key, value] of Object.entries(items)) {
+            await tx.store.put(value, key);
+          }
+        }
+      }
+      localStorage.setItem(`project-${project.id}`, JSON.stringify(project));
+      const params = new URLSearchParams(searchParams);
+      params.set("i", project.id);
+      params.delete("e");
+      window.history.replaceState(
+        null,
+        "",
+        `?${params.toString()}${project.plugins.map((p: string) => `&p:${p}`).join("")}`,
+      );
+      return true;
+    },
+    [searchParams],
+  );
+
+  useEffect(() => {
+    async function handleOpen(e: KeyboardEvent) {
+      if (e.key.toLowerCase() === "o" && e.metaKey) {
+        e.preventDefault();
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".note";
+        input.onchange = async () => {
+          if (input.files === null || input.files.length === 0) return;
+          const file = input.files[0];
+          const text = await file.text();
+          const data = JSON.parse(text);
+          await loadJsonProject(data);
+        };
+        input.click();
+        input.remove();
+      }
+    }
+    window.addEventListener("keydown", handleOpen);
+    return () => {
+      window.removeEventListener("keydown", handleOpen);
+    };
+  }, [loadJsonProject]);
+
   useEffect(() => {
     async function updateProject() {
       const searchId = searchParams.get("i");
@@ -93,33 +153,12 @@ export default function ProjectProvider({
         } else {
           json = await res.json();
         }
-        if (json.type === "organote") {
-          const downloadedProject = json.project as Project;
-          if (json.version === 2) {
-            const db = await openFileDB();
-            const files: Record<string, Record<string, unknown>> = json.files;
-            for await (const [store, items] of Object.entries(files)) {
-              const tx = db.transaction(store, "readwrite");
-              for (const [key, value] of Object.entries(items)) {
-                await tx.store.put(value, key);
-              }
-            }
-          }
-          localStorage.setItem(
-            `project-${downloadedProject.id}`,
-            JSON.stringify(downloadedProject),
-          );
-          const params = new URLSearchParams(searchParams);
-          params.set("i", downloadedProject.id);
-          params.delete("e");
-          window.history.replaceState(
-            null,
-            "",
-            `?${params.toString()}${downloadedProject.plugins.map((p: string) => `&p:${p}`).join("")}`,
-          );
+        const result = await loadJsonProject(json);
+        if (result) {
           return;
         }
       }
+
       if (!searchId) {
         const id = nanoid(7);
         const params = new URLSearchParams(searchParams);
@@ -144,7 +183,7 @@ export default function ProjectProvider({
       }
     }
     updateProject();
-  }, [changeProject, searchParams]);
+  }, [changeProject, searchParams, loadJsonProject]);
 
   useEffect(() => {
     if (
