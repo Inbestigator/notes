@@ -112,13 +112,13 @@ export default memo(function SettingsDialog({
                 setIsExporting(true);
                 const exported = await exportProject();
                 const key = await generateEncryptionKey();
-                const { encryptedBuffer, iv } = await encryptData(
+                const { encrypted, iv } = await encryptData(
                   key,
                   JSON.stringify(exported),
                 );
                 const combinedBuffer = concatBuffers(
                   iv,
-                  new Uint8Array(encryptedBuffer),
+                  new Uint8Array(encrypted),
                 );
                 try {
                   const { pathname } = await upload(

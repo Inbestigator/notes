@@ -47,7 +47,13 @@ function RenderedComponent({ id, item }: { id: string; item: LinedPaper }) {
       <article className="inset-0 m-4 mt-6 h-160 w-xl overflow-scroll">
         <input
           type="text"
-          className="sticky -top-2 z-10 mb-2 w-full border-b border-red-400 bg-neutral-50 text-xl font-medium outline-none"
+          style={{
+            backgroundPositionY: "calc(1lh - 6px)",
+            backgroundSize: "100% 1lh",
+            backgroundImage:
+              "repeating-linear-gradient(0deg, transparent 0, transparent calc(1lh - 1px), oklch(70.4% 0.191 22.216) 1lh)",
+          }}
+          className="sticky top-0 z-10 w-full border-none border-red-400 bg-neutral-50 text-xl font-medium outline-none"
           onChange={(e) => debouncedDetails(e.target.value, item.content)}
           defaultValue={item.title}
         />
@@ -55,20 +61,14 @@ function RenderedComponent({ id, item }: { id: string; item: LinedPaper }) {
           <div
             className="pointer-events-none absolute inset-0 -z-10"
             style={{
-              backgroundPositionY: "calc(1lh - 2px)",
+              backgroundPositionY: "calc(1lh - 6px)",
               backgroundSize: "100% 1lh",
               backgroundImage:
-                "repeating-linear-gradient(0deg, transparent 0, transparent calc(1lh - 1px), oklch(80.9% 0.105 251.813) calc(1lh - 1px), oklch(80.9% 0.105 251.813) 1lh)",
+                "repeating-linear-gradient(0deg, transparent 0, transparent calc(1lh - 1px), oklch(80.9% 0.105 251.813) 1lh)",
             }}
           />
           <textarea
             className="min-h-150 w-full resize-none text-base outline-none"
-            style={{
-              backgroundPositionY: "calc(1lh - 2px)",
-              backgroundSize: "100% 1lh",
-              backgroundImage:
-                "repeating-linear-gradient(0deg, transparent 0, transparent calc(1lh - 1px), oklch(80.9% 0.105 251.813) calc(1lh - 1px), oklch(80.9% 0.105 251.813) 1lh)",
-            }}
             onChange={(e) => {
               debouncedDetails(item.title, e.target.value);
               calcHeight();

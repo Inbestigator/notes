@@ -1,41 +1,23 @@
-/*
-This code is sourced from:
- * https://github.com/excalidraw/excalidraw/blob/master/packages/excalidraw/data/encryption.ts
- * https://github.com/excalidraw/excalidraw/blob/master/packages/excalidraw/data/encode.ts
-Thank you!
-*/
+import {
+  aesKey,
+  decrypt,
+  encrypt,
+  exportKey,
+  generateKey,
+  importKey,
+} from "@enc/core";
 
-export const ENCRYPTION_KEY_BITS = 128;
-export const IV_LENGTH_BYTES = 12;
+const aesOptions = aesKey("Integrity protection", 128);
 
-export const createIV = () => {
-  const arr = new Uint8Array(IV_LENGTH_BYTES);
-  return window.crypto.getRandomValues(arr);
-};
+export async function generateEncryptionKey() {
+  const key = await generateKey(aesOptions);
+  return (await exportKey("jwk", key)).k!;
+}
 
-export const generateEncryptionKey = async <
-  T extends "string" | "cryptoKey" = "string",
->(
-  returnAs?: T,
-): Promise<T extends "cryptoKey" ? CryptoKey : string> => {
-  const key = await window.crypto.subtle.generateKey(
-    {
-      name: "AES-GCM",
-      length: ENCRYPTION_KEY_BITS,
-    },
-    true, // extractable
-    ["encrypt", "decrypt"],
-  );
-  return (
-    returnAs === "cryptoKey"
-      ? key
-      : (await window.crypto.subtle.exportKey("jwk", key)).k
-  ) as T extends "cryptoKey" ? CryptoKey : string;
-};
-
-export const getCryptoKey = (key: string, usage: KeyUsage) =>
-  window.crypto.subtle.importKey(
+const getCryptoKey = (key: string, type: KeyType) =>
+  importKey(
     "jwk",
+    type,
     {
       alg: "A128GCM",
       ext: true,
@@ -43,53 +25,30 @@ export const getCryptoKey = (key: string, usage: KeyUsage) =>
       key_ops: ["encrypt", "decrypt"],
       kty: "oct",
     },
-    {
-      name: "AES-GCM",
-      length: ENCRYPTION_KEY_BITS,
-    },
-    false, // extractable
-    [usage],
+    aesOptions,
+    false,
   );
 
-export const encryptData = async (
-  key: string | CryptoKey,
-  data: Uint8Array | ArrayBuffer | string,
-): Promise<{ encryptedBuffer: ArrayBuffer; iv: Uint8Array }> => {
-  const importedKey =
-    typeof key === "string" ? await getCryptoKey(key, "encrypt") : key;
-  const iv = createIV();
-  const buffer: ArrayBuffer | Uint8Array =
-    typeof data === "string" ? new TextEncoder().encode(data) : data;
+export async function encryptData(publicKey: string, data: string) {
+  const key = await getCryptoKey(publicKey, "public");
+  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+  const encrypted = await encrypt(data, key, { iv });
+  return { encrypted, iv };
+}
 
-  // We use symmetric encryption. AES-GCM is the recommended algorithm and
-  // includes checks that the ciphertext has not been modified by an attacker.
-  const encryptedBuffer = await window.crypto.subtle.encrypt(
-    {
-      name: "AES-GCM",
-      iv,
-    },
-    importedKey,
-    buffer as ArrayBuffer | Uint8Array,
-  );
-
-  return { encryptedBuffer, iv };
-};
-
-export const decryptData = async (
+export async function decryptData(
   iv: Uint8Array,
-  encrypted: Uint8Array | ArrayBuffer,
+  encrypted: Uint8Array,
   privateKey: string,
-): Promise<ArrayBuffer> => {
-  const key = await getCryptoKey(privateKey, "decrypt");
-  return window.crypto.subtle.decrypt(
-    {
-      name: "AES-GCM",
-      iv,
-    },
-    key,
-    encrypted,
-  );
-};
+) {
+  const key = await getCryptoKey(privateKey, "private");
+  return decrypt(encrypted.buffer as ArrayBuffer, key, { iv });
+}
+
+/*
+This code is sourced from https://github.com/excalidraw/excalidraw/blob/master/packages/excalidraw/data/encode.ts
+Thank you!
+*/
 
 const CONCAT_BUFFERS_VERSION = 1;
 /** how many bytes we use to encode how many bytes the next chunk has.
