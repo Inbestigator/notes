@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
+import Providers from "./providers";
 
 const geist = Geist({
   variable: "--font-geist",
@@ -34,7 +35,7 @@ export default function RootLayout({
       <body
         className={`${excalifont.variable} ${geist.variable} font-(family-name:--font-geist) antialiased`}
       >
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

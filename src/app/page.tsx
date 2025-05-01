@@ -1,7 +1,7 @@
 import PanContainer from "@/components/pan-container";
-import ProjectProvider from "@/components/project-provider";
+import ProjectManager from "@/components/project-manager";
 import HUD from "@/components/hud";
-import Items from "@/components/items";
+import ItemList from "@/components/items";
 import { Suspense } from "react";
 
 export default function Home() {
@@ -17,9 +17,11 @@ export default function Home() {
         />
       }
     >
-      <ProjectProvider>
-        <PanContainer>{{ main: <Items />, hud: <HUD /> }}</PanContainer>
-      </ProjectProvider>
+      <ProjectManager />
+      <PanContainer>
+        <ItemList />
+      </PanContainer>
+      <HUD />
     </Suspense>
   );
 }

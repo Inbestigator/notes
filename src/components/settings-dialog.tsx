@@ -2,7 +2,7 @@
 
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import { useCurrentProject, useSetCurrentProject } from "./project-provider";
+import { currentProjectAtom } from "@/lib/state";
 import { useCallback, useState } from "react";
 import { Copy, Download, UploadCloud } from "lucide-react";
 import { openFileDB } from "@/lib/db";
@@ -13,6 +13,7 @@ import {
 } from "@/lib/encryption";
 import { upload } from "@vercel/blob/client";
 import { useDebouncedCallback } from "use-debounce";
+import { useAtom } from "jotai";
 
 export default function SettingsDialog({
   open,
@@ -26,8 +27,7 @@ export default function SettingsDialog({
   );
   const [shareLink, setSharelink] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
-  const project = useCurrentProject();
-  const setCurrentProject = useSetCurrentProject();
+  const [currentProject, setCurrentProject] = useAtom(currentProjectAtom);
   const debouncedTitle = useDebouncedCallback(
     (title) => setCurrentProject((p) => ({ ...p, title })),
     150,
@@ -51,12 +51,12 @@ export default function SettingsDialog({
       type: "organote",
       version: 2,
       project: {
-        ...project,
+        ...currentProject,
         offset: { x: 0, y: 0, z: 1 },
       },
       files,
     };
-  }, [project]);
+  }, [currentProject]);
 
   return (
     <div
@@ -75,7 +75,7 @@ export default function SettingsDialog({
             type="text"
             placeholder="Project title"
             onChange={(e) => debouncedTitle(e.target.value)}
-            defaultValue={project.title}
+            defaultValue={currentProject.title}
           />
           <div className="flex gap-2">
             <Button
@@ -88,7 +88,7 @@ export default function SettingsDialog({
                   type: "application/json",
                 });
                 a.href = URL.createObjectURL(blob);
-                a.download = `${project.title?.length ? project.title : project.id}.note`;
+                a.download = `${currentProject.title?.length ? currentProject.title : currentProject.id}.note`;
                 a.click();
                 setIsExporting(false);
               }}
@@ -119,7 +119,7 @@ export default function SettingsDialog({
                 );
                 try {
                   const { pathname } = await upload(
-                    project.id,
+                    currentProject.id,
                     Buffer.from(combinedBuffer),
                     {
                       access: "public",

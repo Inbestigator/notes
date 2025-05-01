@@ -3,6 +3,7 @@ import textSticky from "./text-sticky";
 import still from "./still";
 import header from "./header";
 import math from "./math";
+import excalidraw from "./excalidraw";
 
 export interface Plugin<T> {
   name: string;
@@ -26,6 +27,6 @@ export interface Plugin<T> {
   }) => React.ReactElement;
 }
 
-const plugins = [textSticky, linedPaper, still, header, math];
+const plugins = [textSticky, linedPaper, still, header, math, excalidraw];
 
 export default plugins;

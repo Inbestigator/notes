@@ -7,7 +7,7 @@ import {
   Shredder,
   Shrink,
 } from "lucide-react";
-import { getProjects } from "./project-provider";
+import { getProjects } from "./project-manager";
 import { memo, useEffect, useState } from "react";
 import { motion } from "motion/react";
 import plugins from "@/plugins";
@@ -16,7 +16,8 @@ import { cn } from "@/lib/utils";
 import { ClassValue } from "clsx";
 import Link from "next/link";
 import SettingsDialog from "./settings-dialog";
-import { usePanOffset } from "./pan-container";
+import { offsetAtom } from "@/lib/state";
+import { useAtom } from "jotai";
 
 const baseButtonClasses: ClassValue =
   "hover:bg-foreground/10 flex items-center justify-center rounded-lg p-2 transition-all first:rounded-t-full last:rounded-b-full";
@@ -217,7 +218,7 @@ function ProjectSelector() {
 }
 
 function ResetZoom() {
-  const { setOffset, offset } = usePanOffset();
+  const [offset, setOffset] = useAtom(offsetAtom);
 
   return (
     <button
@@ -227,9 +228,19 @@ function ResetZoom() {
         "rounded-full data-[hidden=true]:hidden",
       )}
       onClick={() =>
-        setOffset((p) =>
-          offset.z !== 1 ? { ...p, z: 1 } : { x: 0, y: 0, z: 1 },
-        )
+        setOffset((prevOffset) => {
+          const mouseX = window.innerWidth / 2;
+          const mouseY = window.innerHeight / 2;
+          const worldX = (mouseX - prevOffset.x) / prevOffset.z;
+          const worldY = (mouseY - prevOffset.y) / prevOffset.z;
+
+          const newOffsetX = mouseX - worldX;
+          const newOffsetY = mouseY - worldY;
+
+          return prevOffset.z !== 1
+            ? { x: newOffsetX, y: newOffsetY, z: 1 }
+            : { x: 0, y: 0, z: 1 };
+        })
       }
       data-hidden={offset.x === 0 && offset.y === 0 && offset.z === 1}
       data-pannable

@@ -4,7 +4,14 @@ import { useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import plugins from "@/plugins";
 import { openFileDB } from "@/lib/db";
-import { useItems, useSetCurrentProject } from "./project-provider";
+import {
+  currentProjectAtom,
+  highestZAtom,
+  itemFamilyAtom,
+  offsetAtom,
+  sortedItemsAtom,
+} from "@/lib/state";
+import { useAtomValue, useAtom } from "jotai";
 
 export interface BaseItem {
   id: string;
@@ -15,55 +22,58 @@ export interface BaseItem {
 }
 
 export function useItemOffset(id: string) {
-  const items = useItems();
-  return items[id].offset;
+  const item = useAtomValue(itemFamilyAtom({ id }));
+  return item.offset;
 }
 
-export default function Items() {
-  const items = useItems();
-  const searchParams = useSearchParams();
+export default function ItemList() {
+  const items = useAtomValue(sortedItemsAtom);
   useItemManager();
 
-  const handleBringToFront = useCallback(
-    (id: string, currentZ: number) => {
-      const highest = Math.max(...Object.values(items).map((i) => i.z));
-      window.dispatchEvent(
-        new CustomEvent("itemUpdate", {
-          detail: {
-            id,
-            partial: {
-              z: highest > currentZ || highest === 0 ? highest + 1 : currentZ,
-            },
+  return items.map((id) => <Item key={id} id={id} />);
+}
+
+function Item({ id }: { id: string }) {
+  const searchParams = useSearchParams();
+  const [item, setItem] = useAtom(itemFamilyAtom({ id }));
+  const highestZ = useAtomValue(highestZAtom);
+
+  function handleBringToFront() {
+    const z = highestZ > item.z || highestZ === 0 ? highestZ + 1 : item.z;
+    setItem((prev) => ({ ...prev, z }));
+    window.dispatchEvent(
+      new CustomEvent("itemUpdate", {
+        detail: {
+          id,
+          partial: {
+            z,
           },
-        }),
-      );
-    },
-    [items],
+        },
+      }),
+    );
+  }
+
+  const plugin = plugins
+    .filter((p) => p.isRequired || searchParams.has("p:" + p.name))
+    .find((p) => p.name === item.type);
+  if (!plugin) return null;
+
+  return (
+    <div
+      id={item.id}
+      key={item.id}
+      onDoubleClick={handleBringToFront}
+      style={{ zIndex: item.z }}
+      className="relative font-(family-name:--font-excalifont)"
+    >
+      <plugin.RenderedComponent id={item.id} item={item as never} />
+    </div>
   );
-
-  return Object.values(items)
-    .sort((a, b) => a.z - b.z)
-    .map((item) => {
-      const plugin = plugins
-        .filter((p) => p.isRequired || searchParams.has("p:" + p.name))
-        .find((p) => p.name === item.type);
-      if (!plugin) return null;
-
-      return (
-        <div
-          id={item.id}
-          key={item.id}
-          onDoubleClick={() => handleBringToFront(item.id, item.z)}
-          className="font-(family-name:--font-excalifont)"
-        >
-          <plugin.RenderedComponent id={item.id} item={item as never} />
-        </div>
-      );
-    });
 }
 
 function useItemManager() {
-  const setCurrentProject = useSetCurrentProject();
+  const setCurrentProject = useAtom(currentProjectAtom)[1];
+  const offset = useAtomValue(offsetAtom);
 
   const updateItem = useCallback(
     (
@@ -108,12 +118,10 @@ function useItemManager() {
                 ? {
                     x:
                       -dimensions.width +
-                      (window.innerWidth - 52 - window.offset.x) /
-                        window.offset.z,
+                      (window.innerWidth - 52 - offset.x) / offset.z,
                     y:
                       -dimensions.height / 2 +
-                      (window.innerHeight / 2 - window.offset.y) /
-                        window.offset.z,
+                      (window.innerHeight / 2 - offset.y) / offset.z,
                   }
                 : item.offset,
           };
@@ -166,5 +174,5 @@ function useItemManager() {
       window.removeEventListener("itemUpdate", handleItemUpdate);
       window.removeEventListener("itemDelete", handleItemDelete);
     };
-  }, [setCurrentProject, updateItem]);
+  }, [setCurrentProject, updateItem, offset]);
 }

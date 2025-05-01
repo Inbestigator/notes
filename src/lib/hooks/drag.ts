@@ -1,3 +1,5 @@
+import { offsetAtom } from "@/lib/state";
+import { useAtomValue } from "jotai";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export default function useDrag(
@@ -7,6 +9,7 @@ export default function useDrag(
   const [localOffset, setLocalOffset] = useState(startOffset);
   const [isDragging, setIsDragging] = useState(false);
   const localOffsetRef = useRef(localOffset);
+  const offset = useAtomValue(offsetAtom);
 
   useEffect(() => {
     localOffsetRef.current = localOffset;
@@ -18,11 +21,11 @@ export default function useDrag(
         const target = mde.target as HTMLDivElement;
         const newOffset = {
           x:
-            (mme.clientX - window.offset.x) / window.offset.z -
+            (mme.clientX - offset.x) / offset.z -
             target.offsetLeft -
             target.offsetWidth / 2,
           y:
-            (mme.clientY - window.offset.y) / window.offset.z -
+            (mme.clientY - offset.y) / offset.z -
             target.offsetTop -
             target.offsetHeight / 2,
         };
@@ -40,7 +43,7 @@ export default function useDrag(
       window.addEventListener("mouseup", handleMouseUp);
       setIsDragging(true);
     },
-    [onDragEnd],
+    [onDragEnd, offset],
   );
 
   return {

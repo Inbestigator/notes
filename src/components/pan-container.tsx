@@ -1,57 +1,21 @@
 "use client";
 
-import {
-  useState,
-  useRef,
-  useEffect,
-  useCallback,
-  createContext,
-  useContext,
-  useMemo,
-} from "react";
-import { useInitialOffset, useSetCurrentProject } from "./project-provider";
-
-declare global {
-  interface Window {
-    offset: { x: number; y: number; z: number };
-  }
-}
-
-const PanContext = createContext(
-  {} as {
-    offset: { x: number; y: number; z: number };
-    setOffset: React.Dispatch<
-      React.SetStateAction<{
-        x: number;
-        y: number;
-        z: number;
-      }>
-    >;
-  },
-);
-
-export function usePanOffset() {
-  return useContext(PanContext);
-}
+import { useState, useRef, useEffect, useCallback } from "react";
+import { currentProjectAtom, offsetAtom } from "@/lib/state";
+import { useAtom } from "jotai";
 
 export default function PanContainer({
   children,
 }: {
-  children: { main: React.ReactNode; hud?: React.ReactNode };
+  children: React.ReactNode;
 }) {
-  const setCurrentProject = useSetCurrentProject();
-  const initialOffset = useInitialOffset();
+  const setCurrentProject = useAtom(currentProjectAtom)[1];
   const containerRef = useRef<HTMLDivElement>(null);
-  const [offset, setOffset] = useState({ x: 0, y: 0, z: 1 });
+  const [offset, setOffset] = useAtom(offsetAtom);
   const [hasStarted, setHasStarted] = useState(false);
   const wheelTimeoutRef = useRef<NodeJS.Timeout>(null);
   const isMiddleClicking = useRef(false);
   const lastMousePos = useRef<{ x: number; y: number }>(null);
-  window.offset = offset;
-
-  useEffect(() => {
-    setOffset(initialOffset);
-  }, [initialOffset]);
 
   useEffect(() => {
     setCurrentProject((prev) => ({
@@ -104,7 +68,7 @@ export default function PanContainer({
         });
       }
     },
-    [hasStarted, offset.z],
+    [hasStarted, offset.z, setOffset],
   );
 
   const handleMouseUpDown = useCallback((e: MouseEvent) => {
@@ -117,20 +81,23 @@ export default function PanContainer({
     }
   }, []);
 
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (isMiddleClicking.current && lastMousePos.current) {
-      const dx = e.clientX - lastMousePos.current.x;
-      const dy = e.clientY - lastMousePos.current.y;
+  const handleMouseMove = useCallback(
+    (e: MouseEvent) => {
+      if (isMiddleClicking.current && lastMousePos.current) {
+        const dx = e.clientX - lastMousePos.current.x;
+        const dy = e.clientY - lastMousePos.current.y;
 
-      setOffset((prev) => ({
-        x: prev.x + dx,
-        y: prev.y + dy,
-        z: prev.z,
-      }));
+        setOffset((prev) => ({
+          x: prev.x + dx,
+          y: prev.y + dy,
+          z: prev.z,
+        }));
 
-      lastMousePos.current = { x: e.clientX, y: e.clientY };
-    }
-  }, []);
+        lastMousePos.current = { x: e.clientX, y: e.clientY };
+      }
+    },
+    [setOffset],
+  );
 
   const handleTouchStart = useCallback((e: TouchEvent) => {
     if (e.touches.length === 1) {
@@ -145,22 +112,25 @@ export default function PanContainer({
     }
   }, []);
 
-  const handleTouchMove = useCallback((e: TouchEvent) => {
-    if (lastMousePos.current && e.touches.length === 1) {
-      e.preventDefault();
-      const touch = e.touches[0];
-      const dx = touch.clientX - lastMousePos.current.x;
-      const dy = touch.clientY - lastMousePos.current.y;
+  const handleTouchMove = useCallback(
+    (e: TouchEvent) => {
+      if (lastMousePos.current && e.touches.length === 1) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const dx = touch.clientX - lastMousePos.current.x;
+        const dy = touch.clientY - lastMousePos.current.y;
 
-      setOffset((prev) => ({
-        x: prev.x + dx,
-        y: prev.y + dy,
-        z: prev.z,
-      }));
+        setOffset((prev) => ({
+          x: prev.x + dx,
+          y: prev.y + dy,
+          z: prev.z,
+        }));
 
-      lastMousePos.current = { x: touch.clientX, y: touch.clientY };
-    }
-  }, []);
+        lastMousePos.current = { x: touch.clientX, y: touch.clientY };
+      }
+    },
+    [setOffset],
+  );
 
   const handleTouchEnd = useCallback(() => {
     lastMousePos.current = null;
@@ -196,34 +166,29 @@ export default function PanContainer({
     handleTouchEnd,
   ]);
 
-  const value = useMemo(() => ({ offset, setOffset }), [offset]);
-
   return (
-    <PanContext.Provider value={value}>
+    <div
+      data-pannable
+      ref={containerRef}
+      className="absolute inset-0 cursor-move touch-none overflow-hidden bg-clip-border"
+      style={{
+        backgroundPosition: `${offset.x}px ${offset.y}px`,
+        backgroundSize: `${32 * offset.z}px`,
+        backgroundImage: "url('/dots.png')",
+        willChange: "background-position",
+      }}
+    >
       <div
-        data-pannable
-        ref={containerRef}
-        className="absolute inset-0 cursor-move touch-none overflow-hidden bg-clip-border"
         style={{
-          backgroundPosition: `${offset.x}px ${offset.y}px`,
-          backgroundSize: `${32 * offset.z}px`,
-          backgroundImage: "url('/dots.png')",
-          willChange: "background-position",
+          transform: `translate(${offset.x}px, ${offset.y}px) scale(${offset.z})`,
+          transformOrigin: "top left",
+          willChange: "transform",
         }}
+        className="size-full"
+        data-pannable
       >
-        <div
-          style={{
-            transform: `translate(${offset.x}px, ${offset.y}px) scale(${offset.z})`,
-            transformOrigin: "top left",
-            willChange: "transform",
-          }}
-          className="size-full"
-          data-pannable
-        >
-          {children.main}
-        </div>
+        {children}
       </div>
-      {children.hud}
-    </PanContext.Provider>
+    </div>
   );
 }

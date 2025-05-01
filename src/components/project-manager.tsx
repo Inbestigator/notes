@@ -1,20 +1,15 @@
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { nanoid } from "nanoid";
 import { BaseItem } from "./items";
 import { openFileDB } from "@/lib/db";
-import { Loader2 } from "lucide-react";
 import plugins from "@/plugins";
 import { decryptData, splitBuffers } from "@/lib/encryption";
+import { useAtom, useSetAtom } from "jotai";
+import { itemFamilyAtom, offsetAtom } from "@/lib/state";
+import { currentProjectAtom, itemsAtom } from "@/lib/state";
 
 export interface Project {
   id: string;
@@ -25,23 +20,8 @@ export interface Project {
   items: Record<string, BaseItem>;
 }
 
-const CurrentProjectContext = createContext({} as Project);
-const SetCurrentProjectContext = createContext((() => {}) as React.Dispatch<
-  React.SetStateAction<Project>
->);
-const InitialOffsetContext = createContext<Project["offset"]>({
-  x: 0,
-  y: 0,
-  z: 1,
-});
-const ItemsContext = createContext<Project["items"]>({});
-
-export const useCurrentProject = () => useContext(CurrentProjectContext);
-export const useSetCurrentProject = () => useContext(SetCurrentProjectContext);
-export const useInitialOffset = () => useContext(InitialOffsetContext);
-export const useItems = () => useContext(ItemsContext);
-
 export function getProjects() {
+  if (typeof localStorage === "undefined") return [];
   const projects = Object.entries(localStorage)
     .filter(([key]) => key.startsWith("project-"))
     .map((e) => JSON.parse(e[1]) as Project)
@@ -65,14 +45,11 @@ function fetchOrNewProject(id: string) {
   return project;
 }
 
-export default function ProjectProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const [currentProject, setCurrentProject] = useState<Project | null>(null);
-  const [initialOffset, setInitialOffset] = useState({ x: 0, y: 0, z: 1 });
+export default function ProjectManager() {
+  const [currentProject, setCurrentProject] = useAtom(currentProjectAtom);
+  const setItems = useSetAtom(itemsAtom);
   const searchParams = useSearchParams();
+  const setOffset = useSetAtom(offsetAtom);
 
   const loadJsonProject = useCallback(
     async ({
@@ -176,14 +153,16 @@ export default function ProjectProvider({
 
       const project = fetchOrNewProject(searchId);
       setCurrentProject(project);
+      Object.values(project.items).forEach(itemFamilyAtom);
+      setItems(Object.keys(project.items));
       const initialX = Number(searchParams.get("x") ?? NaN);
       const initialY = Number(searchParams.get("y") ?? NaN);
       const initialZ = Number(searchParams.get("z") ?? NaN);
 
       if (!isNaN(initialX) && !isNaN(initialY) && !isNaN(initialZ)) {
-        setInitialOffset({ x: initialX, y: initialY, z: initialZ });
+        setOffset({ x: initialX, y: initialY, z: initialZ });
       } else {
-        setInitialOffset({
+        setOffset({
           x: project.offset.x ?? 0,
           y: project.offset.y ?? 0,
           z: project.offset.z ?? 1,
@@ -191,14 +170,14 @@ export default function ProjectProvider({
       }
     }
     updateProject();
-  }, [searchParams, loadJsonProject]);
+  }, [searchParams, loadJsonProject, setItems, setOffset, setCurrentProject]);
 
   useEffect(() => {
     if (
       !currentProject ||
       (!currentProject.title &&
-        Object.keys(currentProject.items).length === 0 &&
-        currentProject.lastModified === -1) ||
+        Object.keys(currentProject.items ?? {}).length === 0 &&
+        (!currentProject.lastModified || currentProject.lastModified === -1)) ||
       searchParams.has("!ls")
     )
       return;
@@ -232,36 +211,5 @@ export default function ProjectProvider({
     };
   });
 
-  const itemsValue = useMemo(
-    () => currentProject?.items,
-    [currentProject?.items],
-  );
-
-  if (!currentProject) {
-    return (
-      <div
-        className="absolute inset-0 flex items-center justify-center bg-[size:32px] bg-clip-border"
-        style={{
-          backgroundImage: "url('/dots.png')",
-          willChange: "background-position",
-        }}
-      >
-        <Loader2 className="text-muted-foreground size-8 animate-spin" />
-      </div>
-    );
-  }
-
-  return (
-    <SetCurrentProjectContext.Provider
-      value={setCurrentProject as ReturnType<typeof useSetCurrentProject>}
-    >
-      <CurrentProjectContext.Provider value={currentProject}>
-        <ItemsContext value={itemsValue!}>
-          <InitialOffsetContext.Provider value={initialOffset}>
-            {children}
-          </InitialOffsetContext.Provider>
-        </ItemsContext>
-      </CurrentProjectContext.Provider>
-    </SetCurrentProjectContext.Provider>
-  );
+  return null;
 }
