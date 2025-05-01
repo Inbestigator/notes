@@ -8,7 +8,7 @@ import {
   Shrink,
 } from "lucide-react";
 import { getProjects } from "./project-manager";
-import { memo, useEffect, useState } from "react";
+import { memo, useState } from "react";
 import { motion } from "motion/react";
 import plugins from "@/plugins";
 import { useSearchParams } from "next/navigation";
@@ -16,44 +16,17 @@ import { cn } from "@/lib/utils";
 import { ClassValue } from "clsx";
 import Link from "next/link";
 import SettingsDialog from "./settings-dialog";
-import { offsetAtom } from "@/lib/state";
+import { deleteModeAtom, offsetAtom } from "@/lib/state";
 import { useAtom } from "jotai";
+import useCreateItem from "@/lib/hooks/useCreateItem";
 
 const baseButtonClasses: ClassValue =
   "hover:bg-foreground/10 flex items-center justify-center rounded-lg p-2 transition-all first:rounded-t-full last:rounded-b-full";
 
 export default function HUD() {
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeleting, setIsDeleting] = useAtom(deleteModeAtom);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const searchParams = useSearchParams();
-
-  useEffect(() => {
-    function handleDeleteClick(e: MouseEvent) {
-      e.preventDefault();
-      let target = e.target as HTMLDivElement;
-      let id;
-      while (target && !id) {
-        id = target.getAttribute("id");
-        target = target.parentElement as HTMLDivElement;
-      }
-      if (id) {
-        window.dispatchEvent(
-          new CustomEvent("itemDelete", {
-            detail: { id },
-          }),
-        );
-      }
-    }
-
-    if (isDeleting) {
-      document.addEventListener("click", handleDeleteClick);
-    } else {
-      document.removeEventListener("click", handleDeleteClick);
-    }
-    return () => {
-      document.removeEventListener("click", handleDeleteClick);
-    };
-  }, [isDeleting]);
 
   if (searchParams.has("!hud")) {
     return null;
@@ -122,6 +95,7 @@ const Plugins = memo(function Plugins({
 }: {
   searchParams: URLSearchParams;
 }) {
+  const createItem = useCreateItem();
   function addItem(type: string, variant: number) {
     const id = crypto.randomUUID();
     const plugin = plugins.find((p) => p.name === type);
@@ -136,19 +110,15 @@ const Plugins = memo(function Plugins({
       ? plugin.dimensions(variant)
       : plugin.dimensions) ?? { width: 0, height: 0 };
 
-    window.dispatchEvent(
-      new CustomEvent("itemCreate", {
-        detail: {
-          id,
-          type,
-          dimensions: pluginDimensions,
-          deductGlobalOffset: true,
-          z: 0,
-          variant,
-          ...defaultProps,
-        },
-      }),
-    );
+    createItem({
+      id,
+      type,
+      dimensions: pluginDimensions,
+      offset: { x: 0, y: 0 },
+      z: 0,
+      variant,
+      ...defaultProps,
+    });
   }
 
   const PluginButton = memo(function PluginButton({

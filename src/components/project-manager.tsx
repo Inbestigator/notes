@@ -8,7 +8,7 @@ import { openFileDB } from "@/lib/db";
 import plugins from "@/plugins";
 import { decryptData, splitBuffers } from "@/lib/encryption";
 import { useAtom, useSetAtom } from "jotai";
-import { itemFamilyAtom, offsetAtom } from "@/lib/state";
+import { offsetAtom } from "@/lib/state";
 import { currentProjectAtom, itemsAtom } from "@/lib/state";
 
 export interface Project {
@@ -17,7 +17,7 @@ export interface Project {
   lastModified: number;
   offset: { x: number; y: number; z: number };
   plugins: string[];
-  items: Record<string, BaseItem>;
+  items: BaseItem[];
 }
 
 export function getProjects() {
@@ -38,7 +38,7 @@ function fetchOrNewProject(id: string) {
       lastModified: -1,
       offset: { x: 0, y: 0, z: 1 },
       plugins: [],
-      items: {},
+      items: [],
     };
   }
 
@@ -47,7 +47,7 @@ function fetchOrNewProject(id: string) {
 
 export default function ProjectManager() {
   const [currentProject, setCurrentProject] = useAtom(currentProjectAtom);
-  const setItems = useSetAtom(itemsAtom);
+  const [items, setItems] = useAtom(itemsAtom);
   const searchParams = useSearchParams();
   const setOffset = useSetAtom(offsetAtom);
 
@@ -72,6 +72,9 @@ export default function ProjectManager() {
             await tx.store.put(value, key);
           }
         }
+      }
+      if (version < 3) {
+        project.items = Object.values(project.items);
       }
       localStorage.setItem(`project-${project.id}`, JSON.stringify(project));
       const params = new URLSearchParams(searchParams);
@@ -153,8 +156,7 @@ export default function ProjectManager() {
 
       const project = fetchOrNewProject(searchId);
       setCurrentProject(project);
-      Object.values(project.items).forEach(itemFamilyAtom);
-      setItems(Object.keys(project.items));
+      setItems(project.items);
       const initialX = Number(searchParams.get("x") ?? NaN);
       const initialY = Number(searchParams.get("y") ?? NaN);
       const initialZ = Number(searchParams.get("z") ?? NaN);
@@ -170,13 +172,13 @@ export default function ProjectManager() {
       }
     }
     updateProject();
-  }, [searchParams, loadJsonProject, setItems, setOffset, setCurrentProject]);
+  }, [searchParams, loadJsonProject, setOffset, setCurrentProject, setItems]);
 
   useEffect(() => {
     if (
       !currentProject ||
       (!currentProject.title &&
-        Object.keys(currentProject.items ?? {}).length === 0 &&
+        items.length === 0 &&
         (!currentProject.lastModified || currentProject.lastModified === -1)) ||
       searchParams.has("!ls")
     )
@@ -186,13 +188,14 @@ export default function ProjectManager() {
       JSON.stringify({
         ...currentProject,
         lastModified: Date.now(),
-        plugins: new Set(Object.values(currentProject.items).map((i) => i.type))
+        items,
+        plugins: new Set(currentProject.items.map((i) => i.type))
           .values()
           .filter((ps) => !plugins.find((p) => p.name === ps)?.isRequired)
           .toArray(),
       }),
     );
-  }, [currentProject, searchParams]);
+  }, [currentProject, searchParams, items]);
 
   useEffect(() => {
     const handleProjectUpdate = (e: Event) => {

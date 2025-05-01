@@ -7,6 +7,7 @@ import { useDebouncedCallback } from "use-debounce";
 import { memo, useEffect, useRef } from "react";
 import Script from "next/script";
 import Sheet from "@/components/primitives/paper";
+import useUpdateItem from "@/lib/hooks/useUpdateItem";
 
 interface Math extends BaseItem {
   type: "math";
@@ -21,12 +22,9 @@ const Calculator = memo(function Calculator({
   initial: unknown;
 }) {
   const calculatorRef = useRef<HTMLDivElement>(null);
+  const setItem = useUpdateItem(id);
   const debouncedSave = useDebouncedCallback((calculator) => {
-    window.dispatchEvent(
-      new CustomEvent("itemUpdate", {
-        detail: { id, partial: { calculator } },
-      }),
-    );
+    setItem({ calculator });
   }, 150);
 
   useEffect(() => {

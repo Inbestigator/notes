@@ -9,6 +9,7 @@ import { openFileDB } from "@/lib/db";
 import { ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Plugin } from ".";
+import useUpdateItem from "@/lib/hooks/useUpdateItem";
 
 interface Still extends BaseItem {
   type: "still";
@@ -36,12 +37,9 @@ export default {
 
 function RenderedComponent({ id, item }: { id: string; item: Still }) {
   const [imageData, setImageData] = useState<ImageData | null>(null);
+  const setItem = useUpdateItem(id);
   const debouncedTitle = useDebouncedCallback((title) => {
-    window.dispatchEvent(
-      new CustomEvent("itemUpdate", {
-        detail: { id, partial: { title } },
-      }),
-    );
+    setItem({ title });
   }, 150);
 
   useEffect(() => {
@@ -105,11 +103,7 @@ function RenderedComponent({ id, item }: { id: string; item: Still }) {
               tx.store.delete(item.src),
             ]);
 
-            window.dispatchEvent(
-              new CustomEvent("itemUpdate", {
-                detail: { id, partial: { src: imgId } },
-              }),
-            );
+            setItem({ src: imgId });
           }
 
           if (file && file.type.startsWith("image/")) {

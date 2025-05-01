@@ -7,6 +7,7 @@ import { memo, useEffect, useRef, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
 import type { Plugin } from ".";
 import ItemWrapper from "@/components/item-wrapper";
+import useUpdateItem from "@/lib/hooks/useUpdateItem";
 
 interface StickyNote extends BaseItem {
   type: "sticky";
@@ -34,19 +35,12 @@ export default {
 } as Plugin<StickyNote>;
 
 function RenderedComponent({ id, item }: { id: string; item: StickyNote }) {
+  const setItem = useUpdateItem(id);
   const debouncedContent = useDebouncedCallback((content) => {
-    window.dispatchEvent(
-      new CustomEvent("itemUpdate", {
-        detail: { id, partial: { content } },
-      }),
-    );
+    setItem({ content });
   }, 150);
   const debouncedResize = useDebouncedCallback((width) => {
-    window.dispatchEvent(
-      new CustomEvent("itemUpdate", {
-        detail: { id, partial: { width } },
-      }),
-    );
+    setItem({ width });
   }, 150);
 
   const [localWidth, setLocalWidth] = useState(item.width);

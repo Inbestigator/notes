@@ -2,7 +2,7 @@
 
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import { currentProjectAtom } from "@/lib/state";
+import { currentProjectAtom, itemsAtom } from "@/lib/state";
 import { useCallback, useState } from "react";
 import { Copy, Download, UploadCloud } from "lucide-react";
 import { openFileDB } from "@/lib/db";
@@ -13,7 +13,7 @@ import {
 } from "@/lib/encryption";
 import { upload } from "@vercel/blob/client";
 import { useDebouncedCallback } from "use-debounce";
-import { useAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 
 export default function SettingsDialog({
   open,
@@ -28,6 +28,7 @@ export default function SettingsDialog({
   const [shareLink, setSharelink] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
   const [currentProject, setCurrentProject] = useAtom(currentProjectAtom);
+  const items = useAtomValue(itemsAtom);
   const debouncedTitle = useDebouncedCallback(
     (title) => setCurrentProject((p) => ({ ...p, title })),
     150,
@@ -49,14 +50,15 @@ export default function SettingsDialog({
 
     return {
       type: "organote",
-      version: 2,
+      version: 3,
       project: {
         ...currentProject,
         offset: { x: 0, y: 0, z: 1 },
       },
+      items,
       files,
     };
-  }, [currentProject]);
+  }, [currentProject, items]);
 
   return (
     <div

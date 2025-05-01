@@ -2,14 +2,14 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { currentProjectAtom, offsetAtom } from "@/lib/state";
-import { useAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 
 export default function PanContainer({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const setCurrentProject = useAtom(currentProjectAtom)[1];
+  const setCurrentProject = useSetAtom(currentProjectAtom);
   const containerRef = useRef<HTMLDivElement>(null);
   const [offset, setOffset] = useAtom(offsetAtom);
   const [hasStarted, setHasStarted] = useState(false);

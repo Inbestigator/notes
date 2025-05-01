@@ -6,6 +6,7 @@ import type { Plugin } from ".";
 import Sheet from "@/components/primitives/paper";
 import { useEffect, useRef, memo } from "react";
 import { useDebouncedCallback } from "use-debounce";
+import useUpdateItem from "@/lib/hooks/useUpdateItem";
 
 interface LinedPaper extends BaseItem {
   type: "lined-paper";
@@ -24,12 +25,9 @@ export default {
 } as Plugin<LinedPaper>;
 
 function RenderedComponent({ id, item }: { id: string; item: LinedPaper }) {
+  const setItem = useUpdateItem(id);
   const debouncedDetails = useDebouncedCallback((title, content) => {
-    window.dispatchEvent(
-      new CustomEvent("itemUpdate", {
-        detail: { id, partial: { title, content } },
-      }),
-    );
+    setItem({ title, content });
   }, 150);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 

@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import ItemWrapper from "@/components/item-wrapper";
 import { useDebouncedCallback } from "use-debounce";
 import { memo } from "react";
+import useUpdateItem from "@/lib/hooks/useUpdateItem";
 
 interface Header extends BaseItem {
   type: "header";
@@ -33,12 +34,9 @@ export default {
 } as Plugin<Header>;
 
 function RenderedComponent({ id, item }: { id: string; item: Header }) {
+  const setItem = useUpdateItem(id);
   const debouncedContent = useDebouncedCallback((content) => {
-    window.dispatchEvent(
-      new CustomEvent("itemUpdate", {
-        detail: { id, partial: { content } },
-      }),
-    );
+    setItem({ content });
   }, 150);
   return (
     <ItemWrapper tabClassName="bg-neutral-200" id={id}>
