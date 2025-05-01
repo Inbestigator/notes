@@ -15,9 +15,5 @@ export const highestZAtom = atom((get) => {
   const items = get(itemsAtom);
   return items.length === 0 ? 0 : Math.max(...items.map((item) => item.z));
 });
-export const sortedItemsAtom = atom((get) => {
-  const items = get(itemsAtom);
-  return items.sort((a, b) => a.z - b.z);
-});
 
 export const deleteModeAtom = atom(false);

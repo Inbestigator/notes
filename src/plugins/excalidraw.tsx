@@ -9,10 +9,11 @@ import dynamic from "next/dynamic";
 import "@excalidraw/excalidraw/index.css";
 import { memo } from "react";
 
-const Excalidraw = memo(
-  dynamic(async () => (await import("@excalidraw/excalidraw")).Excalidraw, {
+const Excalidraw = dynamic(
+  async () => (await import("@excalidraw/excalidraw")).Excalidraw,
+  {
     ssr: false,
-  }),
+  },
 );
 
 interface Excalidraw extends BaseItem {

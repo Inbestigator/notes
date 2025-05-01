@@ -25,7 +25,13 @@ export function getProjects() {
   const projects = Object.entries(localStorage)
     .filter(([key]) => key.startsWith("project-"))
     .map((e) => JSON.parse(e[1]) as Project)
-    .sort((a, b) => b.lastModified - a.lastModified);
+    .sort((a, b) => b.lastModified - a.lastModified)
+    .map((p) => ({
+      ...p,
+      items: Array.isArray(p.items)
+        ? p.items
+        : (Object.values(p.items) as BaseItem[]),
+    }));
   return projects;
 }
 
@@ -196,23 +202,6 @@ export default function ProjectManager() {
       }),
     );
   }, [currentProject, searchParams, items]);
-
-  useEffect(() => {
-    const handleProjectUpdate = (e: Event) => {
-      if (e instanceof CustomEvent) {
-        if (!e.detail || !e.detail.id || !e.detail.partial) return;
-        setCurrentProject((prev) => ({
-          ...prev,
-          ...e.detail.partial,
-        }));
-      }
-    };
-
-    window.addEventListener("projectUpdate", handleProjectUpdate);
-    return () => {
-      window.removeEventListener("projectUpdate", handleProjectUpdate);
-    };
-  });
 
   return null;
 }

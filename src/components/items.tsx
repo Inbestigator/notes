@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import plugins from "@/plugins";
-import { highestZAtom, itemFamilyAtom, sortedItemsAtom } from "@/lib/state";
+import { highestZAtom, itemFamilyAtom, itemsAtom } from "@/lib/state";
 import { useAtomValue } from "jotai";
 import useUpdateItem from "@/lib/hooks/useUpdateItem";
 
@@ -20,9 +20,11 @@ export function useItemOffset(id: string) {
 }
 
 export default function ItemList() {
-  const items = useAtomValue(sortedItemsAtom);
+  const items = useAtomValue(itemsAtom);
 
-  return items.map((item) => <Item key={item.id} id={item.id} />);
+  return items
+    .sort((a, b) => a.z - b.z)
+    .map((item) => <Item key={item.id} id={item.id} />);
 }
 
 function Item({ id }: { id: string }) {

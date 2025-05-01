@@ -47,7 +47,7 @@ export default function PanContainer({
         wheelTimeoutRef.current = setTimeout(() => setHasStarted(false), 150);
       } else {
         e.preventDefault();
-        const zoomFactor = 0.0015;
+        const zoomFactor = 0.005;
         const newScale = Math.min(
           2,
           Math.max(0.25, offset.z * (1 - e.deltaY * zoomFactor)),
