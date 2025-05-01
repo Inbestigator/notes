@@ -3,7 +3,7 @@
 import type { BaseItem } from "@/components/items";
 import { cn } from "@/lib/utils";
 import { StickyNoteIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
 import type { Plugin } from ".";
 import ItemWrapper from "@/components/item-wrapper";
@@ -30,7 +30,7 @@ export default {
       )}
     />
   ),
-  RenderedComponent,
+  RenderedComponent: memo(RenderedComponent),
 } as Plugin<StickyNote>;
 
 function RenderedComponent({ id, item }: { id: string; item: StickyNote }) {

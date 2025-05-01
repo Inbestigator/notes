@@ -4,7 +4,7 @@ import type { BaseItem } from "@/components/items";
 import { NotebookText } from "lucide-react";
 import type { Plugin } from ".";
 import Sheet from "@/components/primitives/paper";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, memo } from "react";
 import { useDebouncedCallback } from "use-debounce";
 
 interface LinedPaper extends BaseItem {
@@ -20,7 +20,7 @@ export default {
   defaultProps: { title: "", content: "" },
   dimensions: { width: 608, height: 680 },
   HudComponent: () => <NotebookText className="size-5" />,
-  RenderedComponent,
+  RenderedComponent: memo(RenderedComponent),
 } as Plugin<LinedPaper>;
 
 function RenderedComponent({ id, item }: { id: string; item: LinedPaper }) {

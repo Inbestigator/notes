@@ -7,7 +7,7 @@ import {
   Shredder,
   Shrink,
 } from "lucide-react";
-import { useProject } from "./project-provider";
+import { getProjects } from "./project-provider";
 import { memo, useEffect, useState } from "react";
 import { motion } from "motion/react";
 import plugins from "@/plugins";
@@ -182,7 +182,7 @@ const Plugins = memo(function Plugins({
 });
 
 function ProjectSelector() {
-  const { projects } = useProject();
+  const projects = getProjects();
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
 
   return (

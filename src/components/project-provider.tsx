@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import { useSearchParams } from "next/navigation";
@@ -24,17 +25,45 @@ export interface Project {
   items: Record<string, BaseItem>;
 }
 
-const ProjectContext = createContext(
-  {} as {
-    currentProject: Project;
-    projects: Project[];
-    setCurrentProject: React.Dispatch<React.SetStateAction<Project>>;
-    initialOffset: Project["offset"];
-    changeProject: (id: string) => Project | null;
-  },
-);
+const CurrentProjectContext = createContext({} as Project);
+const SetCurrentProjectContext = createContext((() => {}) as React.Dispatch<
+  React.SetStateAction<Project>
+>);
+const InitialOffsetContext = createContext<Project["offset"]>({
+  x: 0,
+  y: 0,
+  z: 1,
+});
+const ItemsContext = createContext<Project["items"]>({});
 
-export const useProject = () => useContext(ProjectContext);
+export const useCurrentProject = () => useContext(CurrentProjectContext);
+export const useSetCurrentProject = () => useContext(SetCurrentProjectContext);
+export const useInitialOffset = () => useContext(InitialOffsetContext);
+export const useItems = () => useContext(ItemsContext);
+
+export function getProjects() {
+  const projects = Object.entries(localStorage)
+    .filter(([key]) => key.startsWith("project-"))
+    .map((e) => JSON.parse(e[1]) as Project)
+    .sort((a, b) => b.lastModified - a.lastModified);
+  return projects;
+}
+
+function fetchOrNewProject(id: string) {
+  const projects = getProjects();
+  let project = projects.find((p) => p.id === id) ?? null;
+  if (!project) {
+    project = {
+      id,
+      lastModified: -1,
+      offset: { x: 0, y: 0, z: 1 },
+      plugins: [],
+      items: {},
+    };
+  }
+
+  return project;
+}
 
 export default function ProjectProvider({
   children,
@@ -42,30 +71,8 @@ export default function ProjectProvider({
   children: React.ReactNode;
 }) {
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
   const [initialOffset, setInitialOffset] = useState({ x: 0, y: 0, z: 1 });
   const searchParams = useSearchParams();
-
-  const changeProject = useCallback((id: string) => {
-    const projects = Object.entries(localStorage)
-      .filter(([key]) => key.startsWith("project-"))
-      .map((e) => JSON.parse(e[1]) as Project)
-      .sort((a, b) => b.lastModified - a.lastModified);
-    let project = projects.find((p) => p.id === id) ?? null;
-    if (!project) {
-      project = {
-        id,
-        lastModified: -1,
-        offset: { x: 0, y: 0, z: 1 },
-        plugins: [],
-        items: {},
-      };
-      projects.push(project);
-    }
-    setProjects(projects);
-    setCurrentProject(project);
-    return project;
-  }, []);
 
   const loadJsonProject = useCallback(
     async ({
@@ -167,7 +174,8 @@ export default function ProjectProvider({
         return;
       }
 
-      const project = changeProject(searchId);
+      const project = fetchOrNewProject(searchId);
+      setCurrentProject(project);
       const initialX = Number(searchParams.get("x") ?? NaN);
       const initialY = Number(searchParams.get("y") ?? NaN);
       const initialZ = Number(searchParams.get("z") ?? NaN);
@@ -183,7 +191,7 @@ export default function ProjectProvider({
       }
     }
     updateProject();
-  }, [changeProject, searchParams, loadJsonProject]);
+  }, [searchParams, loadJsonProject]);
 
   useEffect(() => {
     if (
@@ -224,7 +232,12 @@ export default function ProjectProvider({
     };
   });
 
-  if (!currentProject)
+  const itemsValue = useMemo(
+    () => currentProject?.items,
+    [currentProject?.items],
+  );
+
+  if (!currentProject) {
     return (
       <div
         className="absolute inset-0 flex items-center justify-center bg-[size:32px] bg-clip-border"
@@ -236,20 +249,19 @@ export default function ProjectProvider({
         <Loader2 className="text-muted-foreground size-8 animate-spin" />
       </div>
     );
+  }
 
   return (
-    <ProjectContext.Provider
-      value={{
-        currentProject,
-        setCurrentProject: setCurrentProject as React.Dispatch<
-          React.SetStateAction<Project>
-        >,
-        projects,
-        initialOffset,
-        changeProject,
-      }}
+    <SetCurrentProjectContext.Provider
+      value={setCurrentProject as ReturnType<typeof useSetCurrentProject>}
     >
-      {children}
-    </ProjectContext.Provider>
+      <CurrentProjectContext.Provider value={currentProject}>
+        <ItemsContext value={itemsValue!}>
+          <InitialOffsetContext.Provider value={initialOffset}>
+            {children}
+          </InitialOffsetContext.Provider>
+        </ItemsContext>
+      </CurrentProjectContext.Provider>
+    </SetCurrentProjectContext.Provider>
   );
 }

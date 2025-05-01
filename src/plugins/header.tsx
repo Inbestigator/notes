@@ -6,6 +6,7 @@ import { Heading1, Heading2, Heading3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ItemWrapper from "@/components/item-wrapper";
 import { useDebouncedCallback } from "use-debounce";
+import { memo } from "react";
 
 interface Header extends BaseItem {
   type: "header";
@@ -28,7 +29,7 @@ export default {
     ) : (
       <Heading3 className="size-5" />
     ),
-  RenderedComponent,
+  RenderedComponent: memo(RenderedComponent),
 } as Plugin<Header>;
 
 function RenderedComponent({ id, item }: { id: string; item: Header }) {

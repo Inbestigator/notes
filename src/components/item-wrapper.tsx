@@ -2,7 +2,7 @@ import useDrag from "@/lib/hooks/drag";
 import { cn } from "@/lib/utils";
 import { ClassValue } from "clsx";
 import { memo } from "react";
-import { useProject } from "./project-provider";
+import { useItemOffset } from "./items";
 
 const ItemWrapper = memo(function ItemWrapper({
   id,
@@ -16,9 +16,10 @@ const ItemWrapper = memo(function ItemWrapper({
   className?: string;
   tabClassName?: ClassValue;
 } & React.HTMLAttributes<HTMLDivElement>) {
-  const { currentProject } = useProject();
+  const offset = useItemOffset(id);
+
   const { isDragging, localOffset, handleMouseDown } = useDrag(
-    currentProject.items[id].offset,
+    offset,
     (offset) =>
       window.dispatchEvent(
         new CustomEvent("itemUpdate", { detail: { id, partial: { offset } } }),

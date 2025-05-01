@@ -2,8 +2,8 @@
 
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import { useProject } from "./project-provider";
-import { useState } from "react";
+import { useCurrentProject, useSetCurrentProject } from "./project-provider";
+import { useCallback, useState } from "react";
 import { Copy, Download, UploadCloud } from "lucide-react";
 import { openFileDB } from "@/lib/db";
 import {
@@ -26,15 +26,14 @@ export default function SettingsDialog({
   );
   const [shareLink, setSharelink] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
-  const { currentProject: project, setCurrentProject } = useProject();
+  const project = useCurrentProject();
+  const setCurrentProject = useSetCurrentProject();
   const debouncedTitle = useDebouncedCallback(
     (title) => setCurrentProject((p) => ({ ...p, title })),
     150,
   );
 
-  if (!project) return null;
-
-  async function exportProject() {
+  const exportProject = useCallback(async () => {
     const db = await openFileDB();
     const files: Record<string, Record<string, unknown>> = {};
 
@@ -57,7 +56,7 @@ export default function SettingsDialog({
       },
       files,
     };
-  }
+  }, [project]);
 
   return (
     <div

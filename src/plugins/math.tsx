@@ -65,7 +65,7 @@ export default {
   displayName: "Calculator",
   dimensions: { width: 672, height: 384 },
   HudComponent: () => <CalculatorIcon className="size-5" />,
-  RenderedComponent,
+  RenderedComponent: memo(RenderedComponent),
 } as Plugin<Math>;
 
 function RenderedComponent({ id, item }: { id: string; item: Math }) {

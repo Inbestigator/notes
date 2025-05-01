@@ -7,8 +7,15 @@ import {
   useCallback,
   createContext,
   useContext,
+  useMemo,
 } from "react";
-import { useProject } from "./project-provider";
+import { useInitialOffset, useSetCurrentProject } from "./project-provider";
+
+declare global {
+  interface Window {
+    offset: { x: number; y: number; z: number };
+  }
+}
 
 const PanContext = createContext(
   {} as {
@@ -32,13 +39,15 @@ export default function PanContainer({
 }: {
   children: { main: React.ReactNode; hud?: React.ReactNode };
 }) {
-  const { setCurrentProject, initialOffset } = useProject();
+  const setCurrentProject = useSetCurrentProject();
+  const initialOffset = useInitialOffset();
   const containerRef = useRef<HTMLDivElement>(null);
   const [offset, setOffset] = useState({ x: 0, y: 0, z: 1 });
   const [hasStarted, setHasStarted] = useState(false);
   const wheelTimeoutRef = useRef<NodeJS.Timeout>(null);
   const isMiddleClicking = useRef(false);
   const lastMousePos = useRef<{ x: number; y: number }>(null);
+  window.offset = offset;
 
   useEffect(() => {
     setOffset(initialOffset);
@@ -187,8 +196,10 @@ export default function PanContainer({
     handleTouchEnd,
   ]);
 
+  const value = useMemo(() => ({ offset, setOffset }), [offset]);
+
   return (
-    <PanContext.Provider value={{ offset, setOffset }}>
+    <PanContext.Provider value={value}>
       <div
         data-pannable
         ref={containerRef}

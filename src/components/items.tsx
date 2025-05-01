@@ -4,8 +4,7 @@ import { useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import plugins from "@/plugins";
 import { openFileDB } from "@/lib/db";
-import { useProject } from "./project-provider";
-import { usePanOffset } from "./pan-container";
+import { useItems, useSetCurrentProject } from "./project-provider";
 
 export interface BaseItem {
   id: string;
@@ -15,28 +14,34 @@ export interface BaseItem {
   variant: number;
 }
 
+export function useItemOffset(id: string) {
+  const items = useItems();
+  return items[id].offset;
+}
+
 export default function Items() {
-  const { currentProject } = useProject();
+  const items = useItems();
   const searchParams = useSearchParams();
   useItemManager();
 
-  function handleBringToFront(id: string, currentZ: number) {
-    const highest = Math.max(
-      ...Object.values(currentProject.items).map((i) => i.z),
-    );
-    window.dispatchEvent(
-      new CustomEvent("itemUpdate", {
-        detail: {
-          id,
-          partial: {
-            z: highest > currentZ || highest === 0 ? highest + 1 : currentZ,
+  const handleBringToFront = useCallback(
+    (id: string, currentZ: number) => {
+      const highest = Math.max(...Object.values(items).map((i) => i.z));
+      window.dispatchEvent(
+        new CustomEvent("itemUpdate", {
+          detail: {
+            id,
+            partial: {
+              z: highest > currentZ || highest === 0 ? highest + 1 : currentZ,
+            },
           },
-        },
-      }),
-    );
-  }
+        }),
+      );
+    },
+    [items],
+  );
 
-  return Object.values(currentProject.items)
+  return Object.values(items)
     .sort((a, b) => a.z - b.z)
     .map((item) => {
       const plugin = plugins
@@ -58,8 +63,7 @@ export default function Items() {
 }
 
 function useItemManager() {
-  const { setCurrentProject } = useProject();
-  const { offset } = usePanOffset();
+  const setCurrentProject = useSetCurrentProject();
 
   const updateItem = useCallback(
     (
@@ -104,10 +108,12 @@ function useItemManager() {
                 ? {
                     x:
                       -dimensions.width +
-                      (window.innerWidth - 52 - offset.x) / offset.z,
+                      (window.innerWidth - 52 - window.offset.x) /
+                        window.offset.z,
                     y:
                       -dimensions.height / 2 +
-                      (window.innerHeight / 2 - offset.y) / offset.z,
+                      (window.innerHeight / 2 - window.offset.y) /
+                        window.offset.z,
                   }
                 : item.offset,
           };
@@ -160,5 +166,5 @@ function useItemManager() {
       window.removeEventListener("itemUpdate", handleItemUpdate);
       window.removeEventListener("itemDelete", handleItemDelete);
     };
-  }, [setCurrentProject, updateItem, offset.x, offset.y, offset.z]);
+  }, [setCurrentProject, updateItem]);
 }
