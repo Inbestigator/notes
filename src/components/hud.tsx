@@ -128,7 +128,7 @@ function ProjectSelector() {
         <PackageOpen className="size-5" />
       </button>
       {isSelectorOpen && (
-        <nav className="bg-background/50 absolute top-0 right-full min-w-32 origin-top-right -translate-x-2 rounded-lg shadow-sm backdrop-blur-3xl">
+        <nav className="bg-background/50 absolute top-0 right-full max-h-64 min-w-32 origin-top-right -translate-x-2 overflow-scroll rounded-lg shadow-sm backdrop-blur-3xl">
           {projects.map((p) => (
             <Link
               key={p.id}

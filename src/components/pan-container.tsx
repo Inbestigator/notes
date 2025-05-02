@@ -175,10 +175,9 @@ export default function PanContainer({
       <div
         style={{
           transform: `translate(${offset.x}px, ${offset.y}px) scale(${offset.z})`,
-          transformOrigin: "top left",
           willChange: "transform",
         }}
-        className="size-full"
+        className="size-full origin-top-left"
         data-pannable
       >
         {children}

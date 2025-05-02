@@ -39,7 +39,7 @@ export default function SettingsDialog() {
   const [isCopied, setIsCopied] = useState(false);
   const [currentProject, setCurrentProject] = useAtom(currentProjectAtom);
   const debouncedTitle = useDebouncedCallback(
-    (title) => setCurrentProject((p) => ({ ...p, title })),
+    (title) => setCurrentProject({ ...currentProject, title }),
     150,
   );
 

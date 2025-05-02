@@ -5,9 +5,13 @@ import { useSearchParams } from "next/navigation";
 import { BaseItem } from "./items";
 import { openFileDB } from "@/lib/db";
 import { decryptData, splitBuffers } from "@/lib/encryption";
-import { useAtom } from "jotai";
-import { currentProjectAtom } from "@/lib/state";
-import plugins from "@/plugins";
+import { useSetAtom } from "jotai";
+import {
+  currentProjectAtom,
+  loadingProjectAtom,
+  randomProject,
+} from "@/lib/state";
+import { nanoid } from "nanoid";
 
 export interface Project {
   id: string;
@@ -20,16 +24,9 @@ export interface Project {
 
 export function getProjects(): Project[] {
   if (typeof localStorage === "undefined") return [];
-  const currentProject = JSON.parse(
-    localStorage.getItem("current-project") ?? "{}",
-  ) as Project;
-  currentProject.lastModified = Date.now();
   const projects = Object.entries(localStorage)
-    .filter(
-      ([key]) => key.startsWith("project-") && !key.endsWith(currentProject.id),
-    )
+    .filter(([key]) => key.startsWith("project-"))
     .map((e) => JSON.parse(e[1]) as Project)
-    .concat(currentProject.id ? currentProject : [])
     .sort((a, b) => b.lastModified - a.lastModified)
     .map((p) => ({
       ...p,
@@ -43,15 +40,7 @@ export function getProjects(): Project[] {
 function fetchOrNewProject(id: string) {
   const project = getProjects().find((p) => p.id === id);
 
-  return project
-    ? project
-    : {
-        id,
-        lastModified: -1,
-        offset: { x: 0, y: 0, z: 1 },
-        plugins: [],
-        items: [],
-      };
+  return project ? project : randomProject();
 }
 
 async function loadExportedProject({
@@ -80,64 +69,22 @@ async function loadExportedProject({
     project.offset.z = 1;
   }
   localStorage.setItem(`project-${project.id}`, JSON.stringify(project));
-  window.history.replaceState(null, "", `?p:${project.plugins.join("&p:")}`);
+  window.history.replaceState(
+    null,
+    "",
+    `?i=${project.id}${project.plugins.map((p) => `&:${p}`).join("")}`,
+  );
   return project;
-}
-
-function useGracefulSwapProject() {
-  const [currentProject, setCurrentProject] = useAtom(currentProjectAtom);
-
-  return (newProject: Project) => {
-    if (currentProject.items.length > 0 || currentProject.lastModified !== -1) {
-      localStorage.setItem(
-        `project-${currentProject.id}`,
-        JSON.stringify({
-          ...currentProject,
-          lastModified: Date.now(),
-          plugins: new Set(currentProject.items.map((i) => i.type))
-            .values()
-            .filter((ps) => !plugins.find((p) => p.name === ps)?.isRequired)
-            .toArray(),
-        }),
-      );
-    }
-    setCurrentProject(newProject);
-  };
 }
 
 export default function ProjectManager() {
   const searchParams = useSearchParams();
-  const swapProject = useGracefulSwapProject();
-
-  useEffect(() => {
-    async function handleOpen(e: KeyboardEvent) {
-      if (e.key.toLowerCase() === "o" && e.metaKey) {
-        e.preventDefault();
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = ".note";
-        input.onchange = async () => {
-          if (input.files === null || input.files.length === 0) return;
-          const file = input.files[0];
-          const text = await file.text();
-          const data = JSON.parse(text);
-          const project = await loadExportedProject(data);
-          if (project) {
-            swapProject(project);
-          }
-        };
-        input.click();
-        input.remove();
-      }
-    }
-    window.addEventListener("keydown", handleOpen);
-    return () => {
-      window.removeEventListener("keydown", handleOpen);
-    };
-  }, [swapProject]);
+  const swapProject = useSetAtom(currentProjectAtom);
+  const setLoading = useSetAtom(loadingProjectAtom);
 
   useEffect(() => {
     async function updateProject() {
+      setLoading(true);
       const searchId = searchParams.get("i");
       let externalDownload = searchParams.get("e");
       let key: string | null = null;
@@ -170,6 +117,7 @@ export default function ProjectManager() {
       }
 
       if (!searchId) {
+        window.history.replaceState(null, "", `?i=${nanoid(7)}`);
         return;
       }
 
@@ -182,9 +130,39 @@ export default function ProjectManager() {
         project.offset = { x: initialX, y: initialY, z: initialZ };
       }
       swapProject(project);
+      setLoading(false);
     }
     updateProject();
-  }, [searchParams, swapProject]);
+  }, [searchParams, swapProject, setLoading]);
+
+  useEffect(() => {
+    async function handleOpen(e: KeyboardEvent) {
+      if (e.key.toLowerCase() === "o" && e.metaKey) {
+        e.preventDefault();
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".note";
+        input.onchange = async () => {
+          if (input.files === null || input.files.length === 0) return;
+          const file = input.files[0];
+          const text = await file.text();
+          const data = JSON.parse(text);
+          setLoading(true);
+          const project = await loadExportedProject(data);
+          if (project) {
+            swapProject(project);
+          }
+          setLoading(false);
+        };
+        input.click();
+        input.remove();
+      }
+    }
+    window.addEventListener("keydown", handleOpen);
+    return () => {
+      window.removeEventListener("keydown", handleOpen);
+    };
+  }, [swapProject, setLoading]);
 
   return null;
 }

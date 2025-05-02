@@ -4,19 +4,20 @@ import HUD from "@/components/hud";
 import { Suspense } from "react";
 import SettingsDialog from "@/components/settings-dialog";
 import ItemList from "@/components/items";
-import ClientOnly from "@/components/client-only";
+import Loading from "@/components/loading-project";
 
 export default function Home() {
   return (
-    <Suspense>
-      <ProjectManager />
-      <ClientOnly>
+    <>
+      <Loading />
+      <Suspense>
+        <ProjectManager />
         <PanContainer>
           <ItemList />
         </PanContainer>
         <HUD />
-      </ClientOnly>
+      </Suspense>
       <SettingsDialog />
-    </Suspense>
+    </>
   );
 }
