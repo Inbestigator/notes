@@ -116,6 +116,7 @@ function PluginButton({ plugin }: { plugin: (typeof plugins)[number] }) {
 
 function ProjectSelector() {
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
+  const [isLoading, setLoading] = useState(false);
   const projects = getProjects();
 
   useEffect(() => {
@@ -140,9 +141,20 @@ function ProjectSelector() {
         <PackageOpen className="size-5" />
       </button>
       {isSelectorOpen && (
-        <nav className="bg-background/50 absolute top-0 right-full max-h-64 min-w-32 origin-top-right -translate-x-2 overflow-scroll rounded-lg shadow-sm backdrop-blur-3xl">
+        <nav
+          className={cn(
+            "bg-background/50 absolute top-0 right-full max-h-64 min-w-32 origin-top-right -translate-x-2 overflow-scroll rounded-lg shadow-sm backdrop-blur-3xl transition-all",
+            isLoading && "pointer-events-none blur-sm select-none",
+          )}
+        >
           {projects.map((p) => (
             <Link
+              onClick={(e) => {
+                if (e.metaKey) return;
+                setLoading(true);
+              }}
+              onNavigate={() => setLoading(false)}
+              replace
               key={p.id}
               href={`?i=${p.id}${p.plugins.map((p) => `&p:${p}`).join("")}`}
               className={cn(
