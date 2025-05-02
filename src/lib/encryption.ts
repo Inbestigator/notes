@@ -29,10 +29,10 @@ const getCryptoKey = (key: string, type: KeyType) =>
     false,
   );
 
-export async function encryptData(publicKey: string, data: string) {
+export async function encryptData(publicKey: string, data: Uint8Array) {
   const key = await getCryptoKey(publicKey, "public");
   const iv = window.crypto.getRandomValues(new Uint8Array(12));
-  const encrypted = await encrypt(data, key, { iv });
+  const encrypted = await encrypt(data.buffer as ArrayBuffer, key, { iv });
   return { encrypted, iv };
 }
 

@@ -12,6 +12,8 @@ import {
   randomProject,
 } from "@/lib/state";
 import { nanoid } from "nanoid";
+import { decompress } from "compress-json";
+import { ungzip } from "node-gzip";
 
 export interface Project {
   id: string;
@@ -80,6 +82,11 @@ async function loadExportedProject({
   return project;
 }
 
+async function deCompressExported(encoded: Buffer<ArrayBufferLike>) {
+  const decoded = await ungzip(encoded);
+  return decompress(JSON.parse(new TextDecoder().decode(decoded)));
+}
+
 export default function ProjectManager() {
   const searchParams = useSearchParams();
   const swapProject = useSetAtom(currentProjectAtom);
@@ -102,16 +109,15 @@ export default function ProjectManager() {
       if (externalDownload) {
         const res = await fetch(externalDownload);
         if (!res.ok) return;
-        let json;
+        let arrayBuf;
         if (key) {
           const arrayBuffer = await res.arrayBuffer();
           const [iv, encrypted] = splitBuffers(new Uint8Array(arrayBuffer));
-          const decrypted = await decryptData(iv, encrypted, key);
-          const decoded = new TextDecoder().decode(decrypted);
-          json = JSON.parse(decoded);
+          arrayBuf = await decryptData(iv, encrypted, key);
         } else {
-          json = await res.json();
+          arrayBuf = await res.arrayBuffer();
         }
+        const json = await deCompressExported(Buffer.from(arrayBuf));
         const result = await loadExportedProject(json);
         if (result) {
           swapProject(result);
@@ -144,12 +150,12 @@ export default function ProjectManager() {
         e.preventDefault();
         const input = document.createElement("input");
         input.type = "file";
-        input.accept = ".note";
+        input.accept = ".gz";
         input.onchange = async () => {
           if (input.files === null || input.files.length === 0) return;
           const file = input.files[0];
-          const text = await file.text();
-          const data = JSON.parse(text);
+          const arrayBuf = await file.arrayBuffer();
+          const data = await deCompressExported(Buffer.from(arrayBuf));
           setLoading(true);
           const project = await loadExportedProject(data);
           if (project) {

@@ -17,6 +17,8 @@ import { useAtom, useSetAtom } from "jotai";
 import { baseButtonClasses } from "./hud";
 import { getProjects } from "./project-manager";
 import { nanoid } from "nanoid";
+import { gzip } from "node-gzip";
+import { compress } from "compress-json";
 
 export function OpenSettings() {
   const setIsSettingsOpen = useSetAtom(settingsOpenAtom);
@@ -47,7 +49,7 @@ export default function SettingsDialog() {
   async function exportProject() {
     const project = getProjects().find((p) => p.id === currentProject.id);
 
-    if (!project) return;
+    if (!project) throw new Error("Project not found");
 
     const db = await openFileDB();
     const files: Record<string, Record<string, unknown>> = {};
@@ -72,6 +74,11 @@ export default function SettingsDialog() {
       items: project.items,
       files,
     };
+  }
+
+  function compressExported(exportedProject: object) {
+    const compressed = compress(exportedProject);
+    return gzip(JSON.stringify(compressed));
   }
 
   return (
@@ -100,11 +107,12 @@ export default function SettingsDialog() {
                 setExecutingAction("export");
                 const a = document.createElement("a");
                 const exported = await exportProject();
-                const blob = new Blob([JSON.stringify(exported)], {
-                  type: "application/json",
+                const compressed = await compressExported(exported);
+                const blob = new Blob([compressed], {
+                  type: "application/gzip",
                 });
                 a.href = URL.createObjectURL(blob);
-                a.download = `${currentProject.title?.length ? currentProject.title : currentProject.id}.note`;
+                a.download = `${currentProject.title?.length ? currentProject.title : currentProject.id}.note.gz`;
                 a.click();
                 setExecutingAction(false);
               }}
@@ -124,11 +132,9 @@ export default function SettingsDialog() {
                 }
                 setExecutingAction("share");
                 const exported = await exportProject();
+                const compressed = await compressExported(exported);
                 const key = await generateEncryptionKey();
-                const { encrypted, iv } = await encryptData(
-                  key,
-                  JSON.stringify(exported),
-                );
+                const { encrypted, iv } = await encryptData(key, compressed);
                 const combinedBuffer = concatBuffers(
                   iv,
                   new Uint8Array(encrypted),
