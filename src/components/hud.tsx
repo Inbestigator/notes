@@ -2,7 +2,7 @@
 
 import { Fullscreen, PackageOpen, Shredder, Shrink } from "lucide-react";
 import { getProjects } from "./project-manager";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import plugins from "@/plugins";
 import { useSearchParams } from "next/navigation";
@@ -78,7 +78,6 @@ function PluginList() {
 function PluginButton({ plugin }: { plugin: (typeof plugins)[number] }) {
   const [variant, setVariant] = useState(1);
   const createItem = useCreateItem();
-  const id = crypto.randomUUID();
   const defaultProps =
     typeof plugin?.defaultProps === "function"
       ? plugin.defaultProps(variant)
@@ -100,7 +99,7 @@ function PluginButton({ plugin }: { plugin: (typeof plugins)[number] }) {
       }}
       onClick={() => {
         createItem({
-          id,
+          id: crypto.randomUUID(),
           type: plugin.name,
           dimensions: pluginDimensions,
           offset: { x: 0, y: 0 },
@@ -116,11 +115,23 @@ function PluginButton({ plugin }: { plugin: (typeof plugins)[number] }) {
 }
 
 function ProjectSelector() {
-  const projects = getProjects();
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
+  const projects = getProjects();
+
+  useEffect(() => {
+    if (!isSelectorOpen) return;
+    function handleClick(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      if (!target.closest("#project-selector")) {
+        setIsSelectorOpen(false);
+      }
+    }
+    window.addEventListener("click", handleClick);
+    return () => window.removeEventListener("click", handleClick);
+  }, [isSelectorOpen]);
 
   return (
-    <div className="relative">
+    <div id="project-selector" className="relative">
       <button
         title="Projects"
         className={cn(baseButtonClasses, "rounded-lg!")}
