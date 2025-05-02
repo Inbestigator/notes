@@ -9,8 +9,8 @@ import { useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { OpenSettings } from "./settings-dialog";
-import { deleteModeAtom, offsetAtom } from "@/lib/state";
-import { useAtom } from "jotai";
+import { deleteModeAtom, loadingProjectAtom, offsetAtom } from "@/lib/state";
+import { useAtom, useAtomValue } from "jotai";
 import useCreateItem from "@/lib/hooks/useCreateItem";
 import { nanoid } from "nanoid";
 
@@ -20,8 +20,9 @@ export const baseButtonClasses =
 export default function HUD() {
   const [isDeleting, setIsDeleting] = useAtom(deleteModeAtom);
   const searchParams = useSearchParams();
+  const isLoading = useAtomValue(loadingProjectAtom);
 
-  if (searchParams.has("!hud")) {
+  if (searchParams.has("!hud") || isLoading) {
     return null;
   }
 

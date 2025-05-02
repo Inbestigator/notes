@@ -69,10 +69,13 @@ async function loadExportedProject({
     project.offset.z = 1;
   }
   localStorage.setItem(`project-${project.id}`, JSON.stringify(project));
+  const params = new URLSearchParams(window.location.search);
+  params.set("i", project.id);
+  params.delete("e");
   window.history.replaceState(
     null,
     "",
-    `?i=${project.id}${project.plugins.map((p) => `&:${p}`).join("")}`,
+    `?${params.toString()}${project.plugins.map((p) => `&:${p}`).join("")}`,
   );
   return project;
 }
