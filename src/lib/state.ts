@@ -1,19 +1,41 @@
 import { BaseItem } from "@/components/items";
 import { Project } from "@/components/project-manager";
 import { atom } from "jotai";
-import { atomFamily } from "jotai/utils";
+import { atomFamily, atomWithStorage, createJSONStorage } from "jotai/utils";
+import { focusAtom } from "jotai-optics";
+import { nanoid } from "nanoid";
+import { generateUsername } from "unique-username-generator";
 
-export const currentProjectAtom = atom({} as Project);
-export const itemsAtom = atom<BaseItem[]>([]);
+const randomProject = (): Project => ({
+  id: nanoid(7),
+  title: generateUsername(" "),
+  lastModified: -1,
+  plugins: [],
+  items: [],
+  offset: { x: 0, y: 0, z: 1 },
+});
+
+export const currentProjectAtom = atomWithStorage(
+  "current-project",
+  randomProject(),
+  createJSONStorage(),
+  { getOnInit: true },
+);
+
+export const itemsAtom = focusAtom(currentProjectAtom, (optic) =>
+  optic.prop("items"),
+);
+export const offsetAtom = focusAtom(currentProjectAtom, (optic) =>
+  optic.prop("offset"),
+);
+
 export const itemFamilyAtom = atomFamily((id: string) =>
   atom((get) => get(itemsAtom).find((i) => i.id === id) as BaseItem),
 );
-
-export const offsetAtom = atom({ x: 0, y: 0, z: 1 });
-
 export const highestZAtom = atom((get) => {
   const items = get(itemsAtom);
   return items.length === 0 ? 0 : Math.max(...items.map((item) => item.z));
 });
 
 export const deleteModeAtom = atom(false);
+export const settingsOpenAtom = atom(false);

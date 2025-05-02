@@ -1,27 +1,22 @@
 import PanContainer from "@/components/pan-container";
 import ProjectManager from "@/components/project-manager";
 import HUD from "@/components/hud";
-import ItemList from "@/components/items";
 import { Suspense } from "react";
+import SettingsDialog from "@/components/settings-dialog";
+import ItemList from "@/components/items";
+import ClientOnly from "@/components/client-only";
 
 export default function Home() {
   return (
-    <Suspense
-      fallback={
-        <div
-          className="absolute inset-0 bg-[size:32px] bg-clip-border"
-          style={{
-            backgroundImage: "url('/dots.png')",
-            willChange: "background-position",
-          }}
-        />
-      }
-    >
+    <Suspense>
       <ProjectManager />
-      <PanContainer>
-        <ItemList />
-      </PanContainer>
-      <HUD />
+      <ClientOnly>
+        <PanContainer>
+          <ItemList />
+        </PanContainer>
+        <HUD />
+      </ClientOnly>
+      <SettingsDialog />
     </Suspense>
   );
 }

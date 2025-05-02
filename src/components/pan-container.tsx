@@ -1,28 +1,20 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { currentProjectAtom, offsetAtom } from "@/lib/state";
-import { useAtom, useSetAtom } from "jotai";
+import { offsetAtom } from "@/lib/state";
+import { useAtom } from "jotai";
 
 export default function PanContainer({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const setCurrentProject = useSetAtom(currentProjectAtom);
   const containerRef = useRef<HTMLDivElement>(null);
   const [offset, setOffset] = useAtom(offsetAtom);
   const [hasStarted, setHasStarted] = useState(false);
   const wheelTimeoutRef = useRef<NodeJS.Timeout>(null);
   const isMiddleClicking = useRef(false);
   const lastMousePos = useRef<{ x: number; y: number }>(null);
-
-  useEffect(() => {
-    setCurrentProject((prev) => ({
-      ...prev,
-      offset,
-    }));
-  }, [offset, setCurrentProject]);
 
   const handleWheel = useCallback(
     (e: WheelEvent) => {
@@ -56,6 +48,8 @@ export default function PanContainer({
         const rect = containerRef.current.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
+
+        if (newScale === offset.z) return;
 
         setOffset((prevOffset) => {
           const worldX = (mouseX - prevOffset.x) / prevOffset.z;

@@ -1,7 +1,7 @@
 "use client";
 
 import type { BaseItem } from "../components/items";
-import { memo, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
 import NextImage from "next/image";
 import Sheet from "../components/primitives/paper";
@@ -12,7 +12,6 @@ import type { Plugin } from ".";
 import useUpdateItem from "@/lib/hooks/useUpdateItem";
 
 interface Still extends BaseItem {
-  type: "still";
   title: string;
   src: string;
 }
@@ -32,7 +31,7 @@ export default {
   HudComponent: ({ variant }) => (
     <ImageIcon className={cn("size-5", variant === 2 && "fill-red-300")} />
   ),
-  RenderedComponent: memo(RenderedComponent),
+  RenderedComponent,
 } as Plugin<Still>;
 
 function RenderedComponent({ id, item }: { id: string; item: Still }) {

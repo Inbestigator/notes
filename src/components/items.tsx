@@ -24,7 +24,11 @@ export default function ItemList() {
 
   return items
     .sort((a, b) => a.z - b.z)
-    .map((item) => <Item key={item.id} id={item.id} />);
+    .map((item) => (
+      <div key={item.id}>
+        <Item id={item.id} />
+      </div>
+    ));
 }
 
 function Item({ id }: { id: string }) {
@@ -45,11 +49,9 @@ function Item({ id }: { id: string }) {
 
   return (
     <div
-      id={item.id}
       key={item.id}
       onDoubleClick={handleBringToFront}
-      style={{ zIndex: item.z }}
-      className="relative font-(family-name:--font-excalifont)"
+      className="font-(family-name:--font-excalifont)"
     >
       <plugin.RenderedComponent id={item.id} item={item as never} />
     </div>

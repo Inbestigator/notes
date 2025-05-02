@@ -1,15 +1,13 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { nanoid } from "nanoid";
 import { BaseItem } from "./items";
 import { openFileDB } from "@/lib/db";
-import plugins from "@/plugins";
 import { decryptData, splitBuffers } from "@/lib/encryption";
-import { useAtom, useSetAtom } from "jotai";
-import { offsetAtom } from "@/lib/state";
-import { currentProjectAtom, itemsAtom } from "@/lib/state";
+import { useAtom } from "jotai";
+import { currentProjectAtom } from "@/lib/state";
+import plugins from "@/plugins";
 
 export interface Project {
   id: string;
@@ -20,11 +18,18 @@ export interface Project {
   items: BaseItem[];
 }
 
-export function getProjects() {
+export function getProjects(): Project[] {
   if (typeof localStorage === "undefined") return [];
+  const currentProject = JSON.parse(
+    localStorage.getItem("current-project") ?? "{}",
+  ) as Project;
+  currentProject.lastModified = Date.now();
   const projects = Object.entries(localStorage)
-    .filter(([key]) => key.startsWith("project-"))
+    .filter(
+      ([key]) => key.startsWith("project-") && !key.endsWith(currentProject.id),
+    )
     .map((e) => JSON.parse(e[1]) as Project)
+    .concat(currentProject.id ? currentProject : [])
     .sort((a, b) => b.lastModified - a.lastModified)
     .map((p) => ({
       ...p,
@@ -36,65 +41,73 @@ export function getProjects() {
 }
 
 function fetchOrNewProject(id: string) {
-  const projects = getProjects();
-  let project = projects.find((p) => p.id === id) ?? null;
-  if (!project) {
-    project = {
-      id,
-      lastModified: -1,
-      offset: { x: 0, y: 0, z: 1 },
-      plugins: [],
-      items: [],
-    };
-  }
+  const project = getProjects().find((p) => p.id === id);
 
+  return project
+    ? project
+    : {
+        id,
+        lastModified: -1,
+        offset: { x: 0, y: 0, z: 1 },
+        plugins: [],
+        items: [],
+      };
+}
+
+async function loadExportedProject({
+  type,
+  version,
+  project,
+  files,
+}: {
+  type: string;
+  version: number;
+  project: Project;
+  files: Record<string, Record<string, unknown>>;
+}) {
+  if (type !== "organote" || !version || !project) return null;
+  if (version > 1) {
+    const db = await openFileDB();
+    for await (const [store, items] of Object.entries(files)) {
+      const tx = db.transaction(store, "readwrite");
+      for (const [key, value] of Object.entries(items)) {
+        await tx.store.put(value, key);
+      }
+    }
+  }
+  if (version < 3) {
+    project.items = Object.values(project.items);
+    project.offset.z = 1;
+  }
+  localStorage.setItem(`project-${project.id}`, JSON.stringify(project));
+  window.history.replaceState(null, "", `?p:${project.plugins.join("&p:")}`);
   return project;
 }
 
-export default function ProjectManager() {
+function useGracefulSwapProject() {
   const [currentProject, setCurrentProject] = useAtom(currentProjectAtom);
-  const [items, setItems] = useAtom(itemsAtom);
-  const searchParams = useSearchParams();
-  const setOffset = useSetAtom(offsetAtom);
 
-  const loadJsonProject = useCallback(
-    async ({
-      type,
-      version,
-      project,
-      files,
-    }: {
-      type: string;
-      version: number;
-      project: Project;
-      files: Record<string, Record<string, unknown>>;
-    }) => {
-      if (type !== "organote" || !version || !project) return false;
-      if (version === 2) {
-        const db = await openFileDB();
-        for await (const [store, items] of Object.entries(files)) {
-          const tx = db.transaction(store, "readwrite");
-          for (const [key, value] of Object.entries(items)) {
-            await tx.store.put(value, key);
-          }
-        }
-      }
-      if (version < 3) {
-        project.items = Object.values(project.items);
-      }
-      localStorage.setItem(`project-${project.id}`, JSON.stringify(project));
-      const params = new URLSearchParams(searchParams);
-      params.set("i", project.id);
-      params.delete("e");
-      window.history.replaceState(
-        null,
-        "",
-        `?${params.toString()}${project.plugins.map((p: string) => `&p:${p}`).join("")}`,
+  return (newProject: Project) => {
+    if (currentProject.items.length > 0 || currentProject.lastModified !== -1) {
+      localStorage.setItem(
+        `project-${currentProject.id}`,
+        JSON.stringify({
+          ...currentProject,
+          lastModified: Date.now(),
+          plugins: new Set(currentProject.items.map((i) => i.type))
+            .values()
+            .filter((ps) => !plugins.find((p) => p.name === ps)?.isRequired)
+            .toArray(),
+        }),
       );
-      return true;
-    },
-    [searchParams],
-  );
+    }
+    setCurrentProject(newProject);
+  };
+}
+
+export default function ProjectManager() {
+  const searchParams = useSearchParams();
+  const swapProject = useGracefulSwapProject();
 
   useEffect(() => {
     async function handleOpen(e: KeyboardEvent) {
@@ -108,7 +121,10 @@ export default function ProjectManager() {
           const file = input.files[0];
           const text = await file.text();
           const data = JSON.parse(text);
-          await loadJsonProject(data);
+          const project = await loadExportedProject(data);
+          if (project) {
+            swapProject(project);
+          }
         };
         input.click();
         input.remove();
@@ -118,7 +134,7 @@ export default function ProjectManager() {
     return () => {
       window.removeEventListener("keydown", handleOpen);
     };
-  }, [loadJsonProject]);
+  }, [swapProject]);
 
   useEffect(() => {
     async function updateProject() {
@@ -146,62 +162,29 @@ export default function ProjectManager() {
         } else {
           json = await res.json();
         }
-        const result = await loadJsonProject(json);
+        const result = await loadExportedProject(json);
         if (result) {
+          swapProject(result);
           return;
         }
       }
 
       if (!searchId) {
-        const id = nanoid(7);
-        const params = new URLSearchParams(searchParams);
-        params.set("i", id);
-        window.history.replaceState(null, "", `?${params.toString()}`);
         return;
       }
 
       const project = fetchOrNewProject(searchId);
-      setCurrentProject(project);
-      setItems(project.items);
       const initialX = Number(searchParams.get("x") ?? NaN);
       const initialY = Number(searchParams.get("y") ?? NaN);
       const initialZ = Number(searchParams.get("z") ?? NaN);
 
       if (!isNaN(initialX) && !isNaN(initialY) && !isNaN(initialZ)) {
-        setOffset({ x: initialX, y: initialY, z: initialZ });
-      } else {
-        setOffset({
-          x: project.offset.x ?? 0,
-          y: project.offset.y ?? 0,
-          z: project.offset.z ?? 1,
-        });
+        project.offset = { x: initialX, y: initialY, z: initialZ };
       }
+      swapProject(project);
     }
     updateProject();
-  }, [searchParams, loadJsonProject, setOffset, setCurrentProject, setItems]);
-
-  useEffect(() => {
-    if (
-      !currentProject ||
-      (!currentProject.title &&
-        items.length === 0 &&
-        (!currentProject.lastModified || currentProject.lastModified === -1)) ||
-      searchParams.has("!ls")
-    )
-      return;
-    localStorage.setItem(
-      `project-${currentProject.id}`,
-      JSON.stringify({
-        ...currentProject,
-        lastModified: Date.now(),
-        items,
-        plugins: new Set(currentProject.items.map((i) => i.type))
-          .values()
-          .filter((ps) => !plugins.find((p) => p.name === ps)?.isRequired)
-          .toArray(),
-      }),
-    );
-  }, [currentProject, searchParams, items]);
+  }, [searchParams, swapProject]);
 
   return null;
 }

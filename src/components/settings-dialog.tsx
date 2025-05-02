@@ -2,9 +2,9 @@
 
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import { currentProjectAtom, itemsAtom } from "@/lib/state";
-import { useCallback, useState } from "react";
-import { Copy, Download, UploadCloud } from "lucide-react";
+import { currentProjectAtom, settingsOpenAtom } from "@/lib/state";
+import { useState } from "react";
+import { Copy, Download, Settings2, UploadCloud } from "lucide-react";
 import { openFileDB } from "@/lib/db";
 import {
   concatBuffers,
@@ -13,28 +13,41 @@ import {
 } from "@/lib/encryption";
 import { upload } from "@vercel/blob/client";
 import { useDebouncedCallback } from "use-debounce";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
+import { baseButtonClasses } from "./hud";
+import { getProjects } from "./project-manager";
 
-export default function SettingsDialog({
-  open,
-  setOpen,
-}: {
-  open: boolean;
-  setOpen: (open: boolean) => void;
-}) {
-  const [isExporting, setIsExporting] = useState<false | "export" | "share">(
-    false,
+export function OpenSettings() {
+  const setIsSettingsOpen = useSetAtom(settingsOpenAtom);
+  return (
+    <button
+      title="Settings"
+      className={baseButtonClasses}
+      onClick={() => setIsSettingsOpen((p) => !p)}
+    >
+      <Settings2 className="size-5" />
+    </button>
   );
+}
+
+export default function SettingsDialog() {
+  const [open, setOpen] = useAtom(settingsOpenAtom);
+  const [executingAction, setExecutingAction] = useState<
+    false | "export" | "share" | "delete"
+  >(false);
   const [shareLink, setSharelink] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
   const [currentProject, setCurrentProject] = useAtom(currentProjectAtom);
-  const items = useAtomValue(itemsAtom);
   const debouncedTitle = useDebouncedCallback(
     (title) => setCurrentProject((p) => ({ ...p, title })),
     150,
   );
 
-  const exportProject = useCallback(async () => {
+  async function exportProject() {
+    const project = getProjects().find((p) => p.id === currentProject.id);
+
+    if (!project) return;
+
     const db = await openFileDB();
     const files: Record<string, Record<string, unknown>> = {};
 
@@ -52,13 +65,13 @@ export default function SettingsDialog({
       type: "organote",
       version: 3,
       project: {
-        ...currentProject,
+        ...project,
         offset: { x: 0, y: 0, z: 1 },
       },
-      items,
+      items: project.items,
       files,
     };
-  }, [currentProject, items]);
+  }
 
   return (
     <div
@@ -81,9 +94,9 @@ export default function SettingsDialog({
           />
           <div className="flex gap-2">
             <Button
-              disabled={!!isExporting}
+              disabled={!!executingAction}
               onClick={async () => {
-                setIsExporting("export");
+                setExecutingAction("export");
                 const a = document.createElement("a");
                 const exported = await exportProject();
                 const blob = new Blob([JSON.stringify(exported)], {
@@ -92,23 +105,23 @@ export default function SettingsDialog({
                 a.href = URL.createObjectURL(blob);
                 a.download = `${currentProject.title?.length ? currentProject.title : currentProject.id}.note`;
                 a.click();
-                setIsExporting(false);
+                setExecutingAction(false);
               }}
               className="w-fit"
               variant="secondary"
             >
               <Download />
-              Export{isExporting === "export" && "ing"} project
+              Export{executingAction === "export" && "ing"} project
             </Button>
             <Button
-              disabled={!!isExporting}
+              disabled={!!executingAction}
               onClick={async () => {
                 if (shareLink) {
                   window.navigator.clipboard.writeText(shareLink);
                   setIsCopied(true);
                   return;
                 }
-                setIsExporting("share");
+                setExecutingAction("share");
                 const exported = await exportProject();
                 const key = await generateEncryptionKey();
                 const { encrypted, iv } = await encryptData(
@@ -131,7 +144,7 @@ export default function SettingsDialog({
                   );
                   setSharelink(location.origin + `/#s=${pathname},${key}`);
                 } catch {}
-                setIsExporting(false);
+                setExecutingAction(false);
               }}
               className="group"
               variant="secondary"
@@ -147,13 +160,28 @@ export default function SettingsDialog({
               ) : (
                 <>
                   <UploadCloud />
-                  {isExporting === "share" ? "Uploading" : "Share"} project
+                  {executingAction === "share" ? "Uploading" : "Share"} project
                 </>
               )}
             </Button>
           </div>
         </div>
-        <footer className="flex items-end justify-end">
+        <footer className="flex items-center justify-between gap-2">
+          <Button
+            variant="destructive"
+            disabled={!!executingAction}
+            onClick={() => {
+              if (
+                window.confirm("Are you sure you want to delete this project?")
+              ) {
+                setExecutingAction("delete");
+                localStorage.removeItem("project-" + currentProject.id);
+                window.location.replace("/");
+              }
+            }}
+          >
+            Delet{executingAction === "delete" ? "ing" : "e"} project
+          </Button>
           <Button onClick={() => setOpen(false)}>Exit</Button>
         </footer>
       </div>

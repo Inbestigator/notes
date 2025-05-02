@@ -1,13 +1,13 @@
 import { cn } from "@/lib/utils";
 import { ClassValue } from "clsx";
-import { memo, useCallback, useState } from "react";
+import { useState } from "react";
 import { useItemOffset } from "./items";
 import { useAtomValue } from "jotai";
 import { deleteModeAtom, offsetAtom } from "@/lib/state";
 import useUpdateItem from "@/lib/hooks/useUpdateItem";
 import useDeleteItem from "@/lib/hooks/useDeleteItem";
 
-const ItemWrapper = memo(function ItemWrapper({
+function ItemWrapper({
   id,
   children,
   className,
@@ -26,40 +26,39 @@ const ItemWrapper = memo(function ItemWrapper({
   const deleteItem = useDeleteItem(id);
   const isDeleting = useAtomValue(deleteModeAtom);
 
-  const handleMouseDown = useCallback(
-    (mde: React.MouseEvent) => {
-      const handleMouseMove = (mme: MouseEvent) => {
-        const target = mde.target as HTMLDivElement;
-        const newOffset = {
-          x:
-            (mme.clientX - globalOffset.x) / globalOffset.z -
-            target.offsetLeft -
-            target.offsetWidth / 2,
-          y:
-            (mme.clientY - globalOffset.y) / globalOffset.z -
-            target.offsetTop -
-            target.offsetHeight / 2,
-        };
-        setItem({ offset: newOffset });
+  function handleMouseDown(mde: React.MouseEvent) {
+    const handleMouseMove = (mme: MouseEvent) => {
+      const target = mde.target as HTMLDivElement;
+      const newOffset = {
+        x:
+          (mme.clientX - globalOffset.x) / globalOffset.z -
+          target.offsetLeft -
+          target.offsetWidth / 2,
+        y:
+          (mme.clientY - globalOffset.y) / globalOffset.z -
+          target.offsetTop -
+          target.offsetHeight / 2,
       };
+      setItem({ offset: newOffset });
+    };
 
-      const handleMouseUp = () => {
-        window.removeEventListener("mousemove", handleMouseMove);
-        window.removeEventListener("mouseup", handleMouseUp);
-        setIsDragging(false);
-      };
+    const handleMouseUp = () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+      setIsDragging(false);
+    };
 
-      window.addEventListener("mousemove", handleMouseMove);
-      window.addEventListener("mouseup", handleMouseUp);
-      setIsDragging(true);
-    },
-    [globalOffset, setItem],
-  );
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    setIsDragging(true);
+  }
 
   return (
     <div
       {...props}
-      style={{ transform: `translate(${offset.x}px, ${offset.y}px)` }}
+      style={{
+        transform: `translate(${offset.x}px, ${offset.y}px)`,
+      }}
       className={cn(
         "group absolute cursor-default overflow-hidden rounded-sm shadow-lg transition-none duration-300 ease-in-out [transition:border-radius_150ms_cubic-bezier(0.4,0,0.2,1)] hover:rounded-br-4xl",
         isDragging && "pointer-events-none opacity-90 select-none",
@@ -93,6 +92,6 @@ const ItemWrapper = memo(function ItemWrapper({
       />
     </div>
   );
-});
+}
 
 export default ItemWrapper;

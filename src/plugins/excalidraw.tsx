@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 import type { Plugin } from ".";
 import dynamic from "next/dynamic";
 import "@excalidraw/excalidraw/index.css";
-import { memo } from "react";
 
 const Excalidraw = dynamic(
   async () => (await import("@excalidraw/excalidraw")).Excalidraw,
@@ -17,7 +16,6 @@ const Excalidraw = dynamic(
 );
 
 interface Excalidraw extends BaseItem {
-  type: "excalidraw";
   state: Excalidraw;
 }
 
@@ -28,7 +26,7 @@ export default {
   HudComponent: ({ variant }) => (
     <ImageIcon className={cn("size-5", variant === 2 && "fill-red-300")} />
   ),
-  RenderedComponent: memo(RenderedComponent),
+  RenderedComponent,
 } as Plugin<Excalidraw>;
 
 function RenderedComponent({ id }: { id: string; item: Excalidraw }) {

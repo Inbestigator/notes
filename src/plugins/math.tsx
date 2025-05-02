@@ -4,23 +4,16 @@ import type { BaseItem } from "@/components/items";
 import type { Plugin } from ".";
 import { CalculatorIcon } from "lucide-react";
 import { useDebouncedCallback } from "use-debounce";
-import { memo, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import Script from "next/script";
 import Sheet from "@/components/primitives/paper";
 import useUpdateItem from "@/lib/hooks/useUpdateItem";
 
 interface Math extends BaseItem {
-  type: "math";
   calculator: unknown;
 }
 
-const Calculator = memo(function Calculator({
-  id,
-  initial,
-}: {
-  id: string;
-  initial: unknown;
-}) {
+function Calculator({ id, initial }: { id: string; initial: unknown }) {
   const calculatorRef = useRef<HTMLDivElement>(null);
   const setItem = useUpdateItem(id);
   const debouncedSave = useDebouncedCallback((calculator) => {
@@ -56,14 +49,14 @@ const Calculator = memo(function Calculator({
       <div ref={calculatorRef} className="h-96 w-2xl" />
     </>
   );
-});
+}
 
 export default {
   name: "math",
   displayName: "Calculator",
   dimensions: { width: 672, height: 384 },
   HudComponent: () => <CalculatorIcon className="size-5" />,
-  RenderedComponent: memo(RenderedComponent),
+  RenderedComponent,
 } as Plugin<Math>;
 
 function RenderedComponent({ id, item }: { id: string; item: Math }) {
