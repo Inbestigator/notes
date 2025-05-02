@@ -50,18 +50,21 @@ export default function SettingsDialog() {
     const project = getProjects().find((p) => p.id === currentProject.id);
 
     if (!project) throw new Error("Project not found");
-
     const db = await openFileDB();
     const files: Record<string, Record<string, unknown>> = {};
 
-    for (const store of db.objectStoreNames) {
+    for (const item of project.items) {
+      if (
+        !("src" in item) ||
+        typeof item.src !== "string" ||
+        !item.src.startsWith("upload:")
+      )
+        continue;
+
+      const store = item.src.split(":")[1];
       const tx = db.transaction(store, "readonly");
-      const filesOfType: Record<string, unknown> = {};
-      const allKeys = await tx.store.getAllKeys();
-      for (const key of allKeys) {
-        filesOfType[key.toString()] = await tx.store.get(key);
-      }
-      files[store] = filesOfType;
+      if (!files[store]) files[store] = {};
+      files[store][item.src] = await tx.store.get(item.src);
     }
 
     return {
