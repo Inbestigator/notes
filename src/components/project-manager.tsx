@@ -15,7 +15,7 @@ import { nanoid } from "nanoid";
 
 export interface Project {
   id: string;
-  title?: string;
+  title: string;
   lastModified: number;
   offset: { x: number; y: number; z: number };
   plugins: string[];
@@ -40,7 +40,7 @@ export function getProjects(): Project[] {
 function fetchOrNewProject(id: string) {
   const project = getProjects().find((p) => p.id === id);
 
-  return project ? project : randomProject();
+  return project ? project : { ...randomProject(), id };
 }
 
 async function loadExportedProject({
@@ -75,7 +75,7 @@ async function loadExportedProject({
   window.history.replaceState(
     null,
     "",
-    `?${params.toString()}${project.plugins.map((p) => `&:${p}`).join("")}`,
+    `?${params.toString()}${project.plugins.map((p) => `&p:${p}`).join("")}`,
   );
   return project;
 }

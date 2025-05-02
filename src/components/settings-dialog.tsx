@@ -16,6 +16,7 @@ import { useDebouncedCallback } from "use-debounce";
 import { useAtom, useSetAtom } from "jotai";
 import { baseButtonClasses } from "./hud";
 import { getProjects } from "./project-manager";
+import { nanoid } from "nanoid";
 
 export function OpenSettings() {
   const setIsSettingsOpen = useSetAtom(settingsOpenAtom);
@@ -175,8 +176,17 @@ export default function SettingsDialog() {
                 window.confirm("Are you sure you want to delete this project?")
               ) {
                 setExecutingAction("delete");
+                const nextProject = getProjects()
+                  .filter((p) => p.id !== currentProject.id)
+                  .shift();
                 localStorage.removeItem("project-" + currentProject.id);
-                window.location.replace("/");
+                window.history.replaceState(
+                  null,
+                  "",
+                  `?i=${nextProject?.id ?? nanoid(7)}${(nextProject?.plugins ?? []).map((p) => `&p:${p}`).join("")}`,
+                );
+                setExecutingAction(false);
+                setOpen(false);
               }
             }}
           >
