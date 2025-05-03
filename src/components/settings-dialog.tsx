@@ -33,11 +33,17 @@ export function OpenSettings() {
   );
 }
 
+function compressExported(exportedProject: object) {
+  const compressed = compress(exportedProject);
+  return gzip(JSON.stringify(compressed));
+}
+
 export default function SettingsDialog() {
   const [open, setOpen] = useAtom(settingsOpenAtom);
   const [executingAction, setExecutingAction] = useState<
     false | "export" | "share" | "delete"
   >(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [shareLink, setSharelink] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
   const [currentProject, setCurrentProject] = useAtom(currentProjectAtom);
@@ -47,13 +53,10 @@ export default function SettingsDialog() {
   );
 
   async function exportProject() {
-    const project = getProjects().find((p) => p.id === currentProject.id);
-
-    if (!project) throw new Error("Project not found");
     const db = await openFileDB();
     const files: Record<string, Record<string, unknown>> = {};
 
-    for (const item of project.items) {
+    for (const item of currentProject.items) {
       if (
         !("src" in item) ||
         typeof item.src !== "string" ||
@@ -69,19 +72,13 @@ export default function SettingsDialog() {
 
     return {
       type: "organote",
-      version: 3,
+      version: 4,
       project: {
-        ...project,
+        ...currentProject,
         offset: { x: 0, y: 0, z: 1 },
       },
-      items: project.items,
       files,
     };
-  }
-
-  function compressExported(exportedProject: object) {
-    const compressed = compress(exportedProject);
-    return gzip(JSON.stringify(compressed));
   }
 
   return (
@@ -119,7 +116,6 @@ export default function SettingsDialog() {
                 a.click();
                 setExecutingAction(false);
               }}
-              className="w-fit"
               variant="secondary"
             >
               <Download />
@@ -150,13 +146,14 @@ export default function SettingsDialog() {
                       access: "public",
                       handleUploadUrl: "/api/store",
                       multipart: true,
+                      onUploadProgress: (e) => setUploadProgress(e.percentage),
                     },
                   );
                   setSharelink(location.origin + `/#s=${pathname},${key}`);
                 } catch {}
                 setExecutingAction(false);
               }}
-              className="group"
+              className="relative overflow-hidden"
               variant="secondary"
             >
               {shareLink ? (
@@ -171,6 +168,14 @@ export default function SettingsDialog() {
                 <>
                   <UploadCloud />
                   {executingAction === "share" ? "Uploading" : "Share"} project
+                  <div
+                    className="pointer-events-none absolute right-full h-24 w-[calc(100%+3px)] mix-blend-difference transition-all duration-300 ease-out"
+                    style={{
+                      translate: `${uploadProgress - 1}% 0%`,
+                    }}
+                  >
+                    <div className="size-full rotate-6 bg-white" />
+                  </div>
                 </>
               )}
             </Button>

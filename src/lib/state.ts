@@ -21,17 +21,20 @@ const hiddenCurrentProjectAtom = atom<Project>(randomProject());
 export const currentProjectAtom = atom(
   (get) => get(hiddenCurrentProjectAtom),
   (_, set, curr: Project) => {
-    localStorage.setItem(
-      `project-${curr.id}`,
-      JSON.stringify({
-        ...curr,
-        lastModified: Date.now(),
-        plugins: new Set(curr.items.map((i) => i.type))
-          .values()
-          .filter((ps) => !plugins.find((p) => p.name === ps)?.isRequired)
-          .toArray(),
-      }),
-    );
+    if (curr.lastModified !== -1) {
+      localStorage.setItem(
+        `project-${curr.id}`,
+        JSON.stringify({
+          ...curr,
+          lastModified: Date.now(),
+          plugins: new Set(curr.items.map((i) => i.type))
+            .values()
+            .filter((ps) => !plugins.find((p) => p.name === ps)?.isRequired)
+            .toArray(),
+        }),
+      );
+    }
+    curr.lastModified = Date.now();
     set(hiddenCurrentProjectAtom, curr);
   },
 );
