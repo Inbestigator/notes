@@ -89,7 +89,7 @@ async function deCompressExported(encoded: Buffer<ArrayBufferLike>) {
 
 export default function ProjectManager() {
   const searchParams = useSearchParams();
-  const swapProject = useSetAtom(currentProjectAtom);
+  const setCurrentProject = useSetAtom(currentProjectAtom);
   const setLoading = useSetAtom(loadingProjectAtom);
 
   useEffect(() => {
@@ -118,9 +118,9 @@ export default function ProjectManager() {
           arrayBuf = await res.arrayBuffer();
         }
         const json = await deCompressExported(Buffer.from(arrayBuf));
-        const result = await loadExportedProject(json);
-        if (result) {
-          swapProject(result);
+        const project = await loadExportedProject(json);
+        if (project) {
+          setCurrentProject(project);
           return;
         }
       }
@@ -138,11 +138,11 @@ export default function ProjectManager() {
       if (!isNaN(initialX) && !isNaN(initialY) && !isNaN(initialZ)) {
         project.offset = { x: initialX, y: initialY, z: initialZ };
       }
-      swapProject(project);
+      setCurrentProject(project);
       setLoading(false);
     }
     updateProject();
-  }, [searchParams, swapProject, setLoading]);
+  }, [searchParams, setCurrentProject, setLoading]);
 
   useEffect(() => {
     async function handleOpen(e: KeyboardEvent) {
@@ -159,7 +159,7 @@ export default function ProjectManager() {
           setLoading(true);
           const project = await loadExportedProject(data);
           if (project) {
-            swapProject(project);
+            setCurrentProject(project);
           }
           setLoading(false);
         };
@@ -171,7 +171,7 @@ export default function ProjectManager() {
     return () => {
       window.removeEventListener("keydown", handleOpen);
     };
-  }, [swapProject, setLoading]);
+  }, [setCurrentProject, setLoading]);
 
   return null;
 }
