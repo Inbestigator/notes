@@ -119,6 +119,7 @@ export default function ProjectManager() {
         const project = await loadExportedProject(json);
         if (project) {
           setCurrentProject(project);
+          setLoading(false);
           return;
         }
       }
@@ -128,6 +129,7 @@ export default function ProjectManager() {
         params.set("i", nanoid(7));
         params.delete("e");
         window.history.replaceState(null, "", "?" + params.toString());
+        setLoading(false);
         return;
       }
 
@@ -154,10 +156,10 @@ export default function ProjectManager() {
         input.accept = ".gz";
         input.onchange = async () => {
           if (input.files === null || input.files.length === 0) return;
+          setLoading(true);
           const file = input.files[0];
           const arrayBuf = await file.arrayBuffer();
           const data = await deCompressExported(Buffer.from(arrayBuf));
-          setLoading(true);
           const project = await loadExportedProject(data);
           if (project) {
             setCurrentProject(project);
