@@ -2,8 +2,7 @@
 
 import type { BaseItem } from "../components/items";
 import Sheet from "../components/primitives/paper";
-import { ImageIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { PenTool } from "lucide-react";
 import type { Plugin } from ".";
 import dynamic from "next/dynamic";
 import "@excalidraw/excalidraw/index.css";
@@ -21,11 +20,9 @@ interface Excalidraw extends BaseItem {
 
 export default {
   name: "excalidraw",
-  displayName: "Image",
+  displayName: "Unstable - Excalidraw",
   dimensions: { width: 672, height: 384 },
-  HudComponent: ({ variant }) => (
-    <ImageIcon className={cn("size-5", variant === 2 && "fill-red-300")} />
-  ),
+  HudComponent: () => <PenTool className="size-5" />,
   RenderedComponent,
 } as Plugin<Excalidraw>;
 

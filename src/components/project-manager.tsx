@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { BaseItem } from "./items";
 import { openFileDB } from "@/lib/db";
 import { decryptData, splitBuffers } from "@/lib/encryption";
-import { useSetAtom } from "jotai";
+import { useAtom, useSetAtom } from "jotai";
 import {
   currentProjectAtom,
   loadingProjectAtom,
@@ -74,11 +74,8 @@ async function loadExportedProject({
   const params = new URLSearchParams(window.location.search);
   params.set("i", project.id);
   params.delete("e");
-  window.history.replaceState(
-    null,
-    "",
-    `?${params.toString()}${project.plugins.map((p) => `&p:${p}`).join("")}`,
-  );
+  project.plugins.forEach((p) => params.set("p:" + p, ""));
+  window.history.replaceState(null, "", "?" + params.toString());
   return project;
 }
 
@@ -89,11 +86,12 @@ async function deCompressExported(encoded: Buffer<ArrayBufferLike>) {
 
 export default function ProjectManager() {
   const searchParams = useSearchParams();
-  const setCurrentProject = useSetAtom(currentProjectAtom);
+  const [currentProject, setCurrentProject] = useAtom(currentProjectAtom);
   const setLoading = useSetAtom(loadingProjectAtom);
 
   useEffect(() => {
     async function updateProject() {
+      if (currentProject.id === searchParams.get("i")) return;
       setLoading(true);
       const searchId = searchParams.get("i");
       let externalDownload = searchParams.get("e");
@@ -126,7 +124,10 @@ export default function ProjectManager() {
       }
 
       if (!searchId) {
-        window.history.replaceState(null, "", `?i=${nanoid(7)}`);
+        const params = new URLSearchParams(window.location.search);
+        params.set("i", nanoid(7));
+        params.delete("e");
+        window.history.replaceState(null, "", "?" + params.toString());
         return;
       }
 
@@ -142,7 +143,7 @@ export default function ProjectManager() {
       setLoading(false);
     }
     updateProject();
-  }, [searchParams, setCurrentProject, setLoading]);
+  }, [searchParams, setCurrentProject, setLoading, currentProject]);
 
   useEffect(() => {
     async function handleOpen(e: KeyboardEvent) {

@@ -16,8 +16,8 @@ export default function Home() {
           <ItemList />
         </PanContainer>
         <HUD />
+        <SettingsDialog />
       </Suspense>
-      <SettingsDialog />
     </>
   );
 }

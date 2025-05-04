@@ -19,6 +19,9 @@ import { getProjects } from "./project-manager";
 import { nanoid } from "nanoid";
 import { gzip } from "node-gzip";
 import { compress } from "compress-json";
+import { Checkbox } from "./ui/checkbox";
+import { useSearchParams } from "next/navigation";
+import plugins from "@/plugins";
 
 export function OpenSettings() {
   const setIsSettingsOpen = useSetAtom(settingsOpenAtom);
@@ -89,17 +92,18 @@ export default function SettingsDialog() {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-background flex min-h-64 w-full max-w-xl flex-col justify-between rounded-lg border p-4"
+        className="bg-background flex min-h-64 w-full max-w-xl flex-col justify-between gap-2 rounded-lg border p-4"
       >
         <div className="flex flex-col gap-2">
           <h3 className="text-2xl font-semibold">Settings</h3>
-          <b className="text-muted-foreground -mb-2">Title</b>
+          <b className="-mb-2">Title</b>
           <Input
             type="text"
             placeholder="Project title"
             onChange={(e) => debouncedTitle(e.target.value)}
             defaultValue={currentProject.title}
           />
+          <b className="-mb-2">Export</b>
           <div className="flex gap-2">
             <Button
               disabled={!!executingAction}
@@ -180,6 +184,8 @@ export default function SettingsDialog() {
               )}
             </Button>
           </div>
+          <b className="-mb-2">Enabled plugins</b>
+          <PluginToggler />
         </div>
         <footer className="flex items-center justify-between gap-2">
           <Button
@@ -194,11 +200,10 @@ export default function SettingsDialog() {
                   .filter((p) => p.id !== currentProject.id)
                   .shift();
                 localStorage.removeItem("project-" + currentProject.id);
-                window.history.replaceState(
-                  null,
-                  "",
-                  `?i=${nextProject?.id ?? nanoid(7)}${(nextProject?.plugins ?? []).map((p) => `&p:${p}`).join("")}`,
-                );
+                const params = new URLSearchParams();
+                params.set("i", nextProject?.id ?? nanoid(7));
+                nextProject?.plugins.forEach((p) => params.set("p:" + p, ""));
+                window.history.replaceState(null, "", "?" + params.toString());
                 setExecutingAction(false);
                 setOpen(false);
               }
@@ -211,4 +216,34 @@ export default function SettingsDialog() {
       </div>
     </div>
   );
+}
+
+function PluginToggler() {
+  const params = useSearchParams();
+
+  return plugins
+    .filter((p) => !p.isRequired)
+    .map((p) => (
+      <div key={p.name} className="flex items-center space-x-2">
+        <Checkbox
+          id={p.name}
+          checked={params.has("p:" + p.name)}
+          onCheckedChange={(e) => {
+            const params = new URLSearchParams(window.location.search);
+            if (e) {
+              params.set("p:" + p.name, "");
+            } else {
+              params.delete("p:" + p.name);
+            }
+            window.history.replaceState(null, "", "?" + params.toString());
+          }}
+        />
+        <label
+          htmlFor="terms"
+          className="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+        >
+          {p.displayName ?? p.name}
+        </label>
+      </div>
+    ));
 }

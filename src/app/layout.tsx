@@ -15,6 +15,7 @@ const excalifont = localFont({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://organote.vercel.app"),
   title: "Organote",
   description: "Noting, visualized.",
   openGraph: {
