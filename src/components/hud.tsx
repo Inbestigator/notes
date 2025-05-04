@@ -162,7 +162,7 @@ function ProjectSelector() {
                 "justify-start rounded-lg! text-nowrap",
               )}
             >
-              {p.title?.length ? p.title : "Untitled Project"}
+              {p.title || "Untitled Project"}
             </Link>
           ))}
           <hr className="border-foreground/10 first:hidden" />

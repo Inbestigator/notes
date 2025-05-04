@@ -116,7 +116,7 @@ export default function SettingsDialog() {
                   type: "application/gzip",
                 });
                 a.href = URL.createObjectURL(blob);
-                a.download = `${currentProject.title?.length ? currentProject.title : currentProject.id}.note.gz`;
+                a.download = `${currentProject.title || currentProject.id}.note.gz`;
                 a.click();
                 setExecutingAction(false);
               }}
@@ -149,6 +149,7 @@ export default function SettingsDialog() {
                     {
                       access: "public",
                       handleUploadUrl: "/api/store",
+                      contentType: "application/gzip",
                       multipart: true,
                       onUploadProgress: (e) => setUploadProgress(e.percentage),
                     },

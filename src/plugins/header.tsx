@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import ItemWrapper from "@/components/item-wrapper";
 import { useDebouncedCallback } from "use-debounce";
 import useUpdateItem from "@/lib/hooks/useUpdateItem";
+import { useEffect, useRef, useState } from "react";
 
 interface Header extends BaseItem {
   content: string;
@@ -36,20 +37,56 @@ function RenderedComponent({ id, item }: { id: string; item: Header }) {
   const debouncedContent = useDebouncedCallback((content) => {
     setItem({ content });
   }, 150);
+
+  const [content, setContent] = useState(item.content ?? "");
+  const spanRef = useRef<HTMLSpanElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function calcWidth() {
+    if (inputRef.current && spanRef.current) {
+      const width = spanRef.current.offsetWidth;
+      inputRef.current.style.width = `${width}px`;
+    }
+  }
+
+  useEffect(calcWidth, [content]);
+  useEffect(() => {
+    setTimeout(calcWidth, 10);
+  }, []);
+
   return (
-    <ItemWrapper tabClassName="bg-neutral-200" id={id}>
+    <ItemWrapper
+      tabClassName="bg-neutral-100"
+      className={cn(
+        "shadow-none",
+        item.variant === 2
+          ? "text-3xl font-semibold"
+          : item.variant === 3
+            ? "text-xl font-medium"
+            : "text-5xl font-bold",
+      )}
+      id={id}
+    >
+      <input
+        ref={inputRef}
+        type="text"
+        className="absolute top-0 left-0 bg-transparent outline-none"
+        placeholder="New header..."
+        value={content}
+        onChange={(e) => {
+          setContent(e.target.value);
+          calcWidth();
+          debouncedContent(e.target.value);
+        }}
+      />
       <input
         type="text"
-        className={cn(
-          "w-fit p-2 outline-none",
-          "text-5xl font-bold",
-          item.variant === 2 && "text-3xl font-semibold",
-          item.variant === 3 && "text-xl font-medium",
-        )}
-        placeholder="New header..."
-        defaultValue={item.content}
-        onChange={(e) => debouncedContent(e.target.value)}
+        className="pointer-events-none invisible w-0"
+        disabled
       />
+      <span ref={spanRef} className="invisible whitespace-pre">
+        {content || "New header..."}
+      </span>
     </ItemWrapper>
   );
 }

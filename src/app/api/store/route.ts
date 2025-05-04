@@ -11,7 +11,7 @@ async function handler(request: Request) {
       body,
       request,
       onBeforeGenerateToken: async () => ({
-        allowedContentTypes: ["application/octet-stream"],
+        allowedContentTypes: ["application/gzip"],
         addRandomSuffix: true,
       }),
       onUploadCompleted: async () => {},
