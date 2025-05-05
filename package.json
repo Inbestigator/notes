@@ -6,10 +6,10 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
-    "check": "pnpm typecheck && pnpm lint --fix && pnpm format"
+    "check": "bun typecheck && bun lint --fix && bun format"
   },
   "dependencies": {
-    "@enc/core": "jsr:^0.1.3",
+    "@enc/core": "npm:@jsr/enc__core",
     "@excalidraw/excalidraw": "^0.18.0",
     "@radix-ui/react-checkbox": "^1.2.3",
     "@radix-ui/react-slot": "^1.2.0",
@@ -49,6 +49,5 @@
     "tailwindcss": "^4.1.5",
     "tw-animate-css": "^1.2.9",
     "typescript": "^5.8.3"
-  },
-  "packageManager": "pnpm@10.10.0"
+  }
 }
