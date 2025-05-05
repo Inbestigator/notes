@@ -4,10 +4,9 @@ import type { BaseItem } from "@/components/items";
 import { cn } from "@/lib/utils";
 import { StickyNoteIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useDebouncedCallback } from "use-debounce";
 import type { Plugin } from ".";
 import ItemWrapper from "@/components/item-wrapper";
-import useUpdateItem from "@/lib/hooks/useUpdateItem";
+import useDebouncedUpdate from "@/lib/hooks/useDebouncedUpdate";
 
 interface StickyNote extends BaseItem {
   content: string;
@@ -34,15 +33,7 @@ export default {
 } as Plugin<StickyNote>;
 
 function RenderedComponent({ id, item }: { id: string; item: StickyNote }) {
-  const setItem = useUpdateItem(id);
-  const debouncedContent = useDebouncedCallback((content) => {
-    setItem({ content });
-  }, 150);
-  const debouncedResize = useDebouncedCallback((width) => {
-    setItem({ width });
-  }, 150);
-
-  const [localWidth, setLocalWidth] = useState(item.width);
+  const [latestItemValue, updateItem] = useDebouncedUpdate(item.id, item);
   const [isResizing, setIsResizing] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const startX = useRef(0);
@@ -58,7 +49,8 @@ function RenderedComponent({ id, item }: { id: string; item: StickyNote }) {
   function handleMouseDown(e: React.MouseEvent) {
     setIsResizing(true);
     startX.current = e.clientX;
-    startWidth.current = localWidth || textareaRef.current?.offsetWidth || 256;
+    startWidth.current =
+      latestItemValue.width || textareaRef.current?.offsetWidth || 256;
     e.preventDefault();
     e.stopPropagation();
   }
@@ -68,13 +60,12 @@ function RenderedComponent({ id, item }: { id: string; item: StickyNote }) {
       if (!isResizing) return;
       const deltaX = e.clientX - startX.current;
       const newWidth = Math.max(224, startWidth.current + deltaX);
-      setLocalWidth(newWidth);
+      updateItem({ width: newWidth });
     }
 
     function handleMouseUp() {
       if (isResizing) {
         setIsResizing(false);
-        debouncedResize(localWidth);
       }
     }
     calcHeight();
@@ -82,15 +73,12 @@ function RenderedComponent({ id, item }: { id: string; item: StickyNote }) {
     if (isResizing) {
       window.addEventListener("mousemove", handleMouseMove);
       window.addEventListener("mouseup", handleMouseUp);
-    } else {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
+      return () => {
+        window.removeEventListener("mousemove", handleMouseMove);
+        window.removeEventListener("mouseup", handleMouseUp);
+      };
     }
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isResizing, localWidth, debouncedResize]);
+  }, [isResizing, latestItemValue.width, updateItem]);
 
   return (
     <ItemWrapper
@@ -111,10 +99,10 @@ function RenderedComponent({ id, item }: { id: string; item: StickyNote }) {
         placeholder="New sticky note..."
         onChange={(e) => {
           calcHeight();
-          debouncedContent(e.target.value);
+          updateItem({ content: e.target.value });
         }}
-        style={{ width: localWidth }}
-        defaultValue={item.content}
+        style={{ width: latestItemValue.width }}
+        value={latestItemValue.content}
         ref={textareaRef}
       />
       <div

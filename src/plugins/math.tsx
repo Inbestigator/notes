@@ -3,11 +3,10 @@
 import type { BaseItem } from "@/components/items";
 import type { Plugin } from ".";
 import { CalculatorIcon } from "lucide-react";
-import { useDebouncedCallback } from "use-debounce";
 import { useEffect, useRef } from "react";
 import Script from "next/script";
 import Sheet from "@/components/primitives/paper";
-import useUpdateItem from "@/lib/hooks/useUpdateItem";
+import useDebouncedUpdate from "@/lib/hooks/useDebouncedUpdate";
 
 interface Math extends BaseItem {
   calculator: unknown;
@@ -15,10 +14,9 @@ interface Math extends BaseItem {
 
 function Calculator({ id, initial }: { id: string; initial: unknown }) {
   const calculatorRef = useRef<HTMLDivElement>(null);
-  const setItem = useUpdateItem(id);
-  const debouncedSave = useDebouncedCallback((calculator) => {
-    setItem({ calculator });
-  }, 150);
+  const updateItem = useDebouncedUpdate(id, {
+    calculator: initial,
+  })[1];
 
   useEffect(() => {
     function loadCalc() {
@@ -35,10 +33,12 @@ function Calculator({ id, initial }: { id: string; initial: unknown }) {
       } else {
         calc.setBlank();
       }
-      calc.observeEvent("change", () => debouncedSave(calc.getState()));
+      calc.observeEvent("change", () =>
+        updateItem({ calculator: calc.getState() }),
+      );
     }
     loadCalc();
-  }, [initial, debouncedSave]);
+  }, [initial, updateItem]);
 
   return (
     <>

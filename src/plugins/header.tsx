@@ -5,9 +5,8 @@ import type { Plugin } from ".";
 import { Heading1, Heading2, Heading3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import ItemWrapper from "@/components/item-wrapper";
-import { useDebouncedCallback } from "use-debounce";
-import useUpdateItem from "@/lib/hooks/useUpdateItem";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import useDebouncedUpdate from "@/lib/hooks/useDebouncedUpdate";
 
 interface Header extends BaseItem {
   content: string;
@@ -17,6 +16,7 @@ export default {
   name: "header",
   displayName: "Header",
   numVariants: 3,
+  defaultProps: { content: "" },
   dimensions: (variant) => ({
     width: variant === 1 ? 704.667 : variant === 2 ? 433.667 : 295,
     height: variant === 1 ? 74 : variant === 2 ? 52 : 44,
@@ -33,12 +33,7 @@ export default {
 } as Plugin<Header>;
 
 function RenderedComponent({ id, item }: { id: string; item: Header }) {
-  const setItem = useUpdateItem(id);
-  const debouncedContent = useDebouncedCallback((content) => {
-    setItem({ content });
-  }, 150);
-
-  const [content, setContent] = useState(item.content ?? "");
+  const [latestItemValue, updateItem] = useDebouncedUpdate(item.id, item);
   const spanRef = useRef<HTMLSpanElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -49,7 +44,7 @@ function RenderedComponent({ id, item }: { id: string; item: Header }) {
     }
   }
 
-  useEffect(calcWidth, [content]);
+  useEffect(calcWidth, [latestItemValue.content]);
   useEffect(() => {
     setTimeout(calcWidth, 10);
   }, []);
@@ -72,11 +67,10 @@ function RenderedComponent({ id, item }: { id: string; item: Header }) {
         type="text"
         className="absolute top-0 left-0 bg-transparent outline-none"
         placeholder="New header..."
-        value={content}
+        value={latestItemValue.content}
         onChange={(e) => {
-          setContent(e.target.value);
           calcWidth();
-          debouncedContent(e.target.value);
+          updateItem({ content: e.target.value });
         }}
       />
       <input
@@ -85,7 +79,7 @@ function RenderedComponent({ id, item }: { id: string; item: Header }) {
         disabled
       />
       <span ref={spanRef} className="invisible whitespace-pre">
-        {content || "New header..."}
+        {latestItemValue.content || "New header..."}
       </span>
     </ItemWrapper>
   );

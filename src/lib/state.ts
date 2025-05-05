@@ -20,7 +20,8 @@ const hiddenCurrentProjectAtom = atom<Project>(randomProject());
 
 export const currentProjectAtom = atom(
   (get) => get(hiddenCurrentProjectAtom),
-  (_, set, curr: Project) => {
+  (get, set, curr: Project | ((p: Project) => Project)) => {
+    if (typeof curr === "function") curr = curr(get(hiddenCurrentProjectAtom));
     if (curr.lastModified !== -1) {
       localStorage.setItem(
         `project-${curr.id}`,

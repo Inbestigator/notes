@@ -2,7 +2,6 @@
 
 import type { BaseItem } from "../components/items";
 import { useEffect, useState } from "react";
-import { useDebouncedCallback } from "use-debounce";
 import NextImage from "next/image";
 import Sheet from "../components/primitives/paper";
 import { openFileDB } from "@/lib/db";
@@ -10,6 +9,7 @@ import { ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Plugin } from ".";
 import useUpdateItem from "@/lib/hooks/useUpdateItem";
+import useDebouncedUpdate from "@/lib/hooks/useDebouncedUpdate";
 
 interface Still extends BaseItem {
   title: string;
@@ -37,10 +37,7 @@ export default {
 function RenderedComponent({ id, item }: { id: string; item: Still }) {
   const [imageData, setImageData] = useState<ImageData | null>(null);
   const setItem = useUpdateItem(id);
-  const debouncedTitle = useDebouncedCallback((title) => {
-    setItem({ title });
-  }, 150);
-
+  const [latestItemValue, updateItem] = useDebouncedUpdate(item.id, item);
   useEffect(() => {
     async function fetchImage() {
       const db = await openFileDB();
@@ -147,8 +144,8 @@ function RenderedComponent({ id, item }: { id: string; item: Still }) {
         placeholder={
           imageData?.name ? `A photo of ${imageData.name}` : "A photo of..."
         }
-        onChange={(e) => debouncedTitle(e.target.value)}
-        defaultValue={item.title}
+        onChange={(e) => updateItem({ title: e.target.value })}
+        value={latestItemValue.title}
       />
     </Sheet>
   );

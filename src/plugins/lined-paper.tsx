@@ -5,8 +5,7 @@ import { NotebookText } from "lucide-react";
 import type { Plugin } from ".";
 import Sheet from "@/components/primitives/paper";
 import { useEffect, useRef } from "react";
-import { useDebouncedCallback } from "use-debounce";
-import useUpdateItem from "@/lib/hooks/useUpdateItem";
+import useDebouncedUpdate from "@/lib/hooks/useDebouncedUpdate";
 
 interface LinedPaper extends BaseItem {
   title: string;
@@ -24,10 +23,7 @@ export default {
 } as Plugin<LinedPaper>;
 
 function RenderedComponent({ id, item }: { id: string; item: LinedPaper }) {
-  const setItem = useUpdateItem(id);
-  const debouncedDetails = useDebouncedCallback((title, content) => {
-    setItem({ title, content });
-  }, 150);
+  const [latestItemValue, updateItem] = useDebouncedUpdate(item.id, item);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   function calcHeight() {
@@ -51,8 +47,8 @@ function RenderedComponent({ id, item }: { id: string; item: LinedPaper }) {
               "repeating-linear-gradient(0deg, transparent 0, transparent calc(1lh - 1px), oklch(70.4% 0.191 22.216) 1lh)",
           }}
           className="sticky top-0 z-10 w-full border-none border-red-400 bg-neutral-50 text-xl font-medium outline-none"
-          onChange={(e) => debouncedDetails(e.target.value, item.content)}
-          defaultValue={item.title}
+          onChange={(e) => updateItem({ title: e.target.value })}
+          value={latestItemValue.title}
         />
         <div className="relative h-fit">
           <div
@@ -67,10 +63,10 @@ function RenderedComponent({ id, item }: { id: string; item: LinedPaper }) {
           <textarea
             className="min-h-150 w-full resize-none text-base outline-none"
             onChange={(e) => {
-              debouncedDetails(item.title, e.target.value);
+              updateItem({ content: e.target.value });
               calcHeight();
             }}
-            defaultValue={item.content}
+            value={latestItemValue.content}
             ref={textareaRef}
           />
         </div>

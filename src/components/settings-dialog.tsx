@@ -12,7 +12,6 @@ import {
   generateEncryptionKey,
 } from "@/lib/encryption";
 import { upload } from "@vercel/blob/client";
-import { useDebouncedCallback } from "use-debounce";
 import { useAtom, useSetAtom } from "jotai";
 import { baseButtonClasses } from "./hud";
 import { getProjects } from "./project-manager";
@@ -22,6 +21,7 @@ import { compress } from "compress-json";
 import { Checkbox } from "./ui/checkbox";
 import { useSearchParams } from "next/navigation";
 import plugins from "@/plugins";
+import useDebouncedUpdate from "@/lib/hooks/useDebouncedUpdate";
 
 export function OpenSettings() {
   const setIsSettingsOpen = useSetAtom(settingsOpenAtom);
@@ -50,9 +50,11 @@ export default function SettingsDialog() {
   const [shareLink, setSharelink] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
   const [currentProject, setCurrentProject] = useAtom(currentProjectAtom);
-  const debouncedTitle = useDebouncedCallback(
-    (title) => setCurrentProject({ ...currentProject, title }),
+  const [title, setTitle] = useDebouncedUpdate(
+    currentProject.id,
+    currentProject.title,
     150,
+    (v) => setCurrentProject((p) => ({ ...p, title: v })),
   );
 
   async function exportProject() {
@@ -100,8 +102,8 @@ export default function SettingsDialog() {
           <Input
             type="text"
             placeholder="Project title"
-            onChange={(e) => debouncedTitle(e.target.value)}
-            defaultValue={currentProject.title}
+            onChange={(e) => setTitle(e.target.value)}
+            value={title}
           />
           <b className="-mb-2">Export</b>
           <div className="flex gap-2">
