@@ -6,6 +6,9 @@ export async function openFileDB() {
       if (!db.objectStoreNames.contains("images")) {
         db.createObjectStore("images");
       }
+      if (!db.objectStoreNames.contains("pdfs")) {
+        db.createObjectStore("pdfs");
+      }
     },
   });
 }
