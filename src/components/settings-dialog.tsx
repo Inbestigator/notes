@@ -22,6 +22,7 @@ import { Checkbox } from "./ui/checkbox";
 import { useSearchParams } from "next/navigation";
 import plugins from "@/plugins";
 import useDebouncedUpdate from "@/lib/hooks/useDebouncedUpdate";
+import { deleteResource } from "@/lib/hooks/useDeleteItem";
 
 export function OpenSettings() {
   const setIsSettingsOpen = useSetAtom(settingsOpenAtom);
@@ -202,6 +203,15 @@ export default function SettingsDialog() {
                 const nextProject = getProjects()
                   .filter((p) => p.id !== currentProject.id)
                   .shift();
+                for (const item of currentProject.items) {
+                  if (
+                    "src" in item &&
+                    typeof item.src === "string" &&
+                    item.src.startsWith("upload:")
+                  ) {
+                    deleteResource(item.src);
+                  }
+                }
                 localStorage.removeItem("project-" + currentProject.id);
                 const params = new URLSearchParams();
                 params.set("i", nextProject?.id ?? nanoid(7));
