@@ -54,6 +54,8 @@ function Calculator({ id, initial }: { id: string; initial: unknown }) {
 export default {
   name: "math",
   displayName: "Calculator",
+  description:
+    "Created with the Desmos API, used with permission from Desmos Studio PBC",
   dimensions: { width: 672, height: 384 },
   HudComponent: () => <CalculatorIcon className="size-5" />,
   RenderedComponent,

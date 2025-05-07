@@ -15,6 +15,7 @@ interface Header extends BaseItem {
 export default {
   name: "header",
   displayName: "Header",
+  description: "Adds h1, h2, and h3",
   numVariants: 3,
   defaultProps: { content: "" },
   dimensions: (variant) => ({

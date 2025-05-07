@@ -1,13 +1,13 @@
 import { openDB } from "idb";
 
 export async function openFileDB() {
-  return openDB("files", 1, {
+  return openDB("files", 2, {
     upgrade(db) {
-      if (!db.objectStoreNames.contains("images")) {
-        db.createObjectStore("images");
-      }
-      if (!db.objectStoreNames.contains("pdfs")) {
-        db.createObjectStore("pdfs");
+      const stores = ["images", "pdfs"];
+      for (const store of stores) {
+        if (!db.objectStoreNames.contains(store)) {
+          db.createObjectStore(store);
+        }
       }
     },
   });

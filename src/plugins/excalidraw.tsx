@@ -21,6 +21,7 @@ interface Excalidraw extends BaseItem {
 export default {
   name: "excalidraw",
   displayName: "Unstable - Excalidraw",
+  description: "An experimental usage of the Excalidraw drawing app",
   dimensions: { width: 672, height: 384 },
   HudComponent: () => <PenTool className="size-5" />,
   RenderedComponent,

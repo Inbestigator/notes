@@ -237,7 +237,7 @@ function PluginToggler() {
   return plugins
     .filter((p) => !p.isRequired)
     .map((p) => (
-      <div key={p.name} className="flex items-center space-x-2">
+      <div key={p.name} className="items-top flex space-x-2">
         <Checkbox
           id={p.name}
           checked={params.has("p:" + p.name)}
@@ -251,12 +251,15 @@ function PluginToggler() {
             window.history.replaceState(null, "", "?" + params.toString());
           }}
         />
-        <label
-          htmlFor="terms"
-          className="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-        >
-          {p.displayName ?? p.name}
-        </label>
+        <div className="grid gap-1.5 leading-none">
+          <label
+            htmlFor={p.name}
+            className="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+          >
+            {p.displayName ?? p.name}
+          </label>
+          <p className="text-muted-foreground text-sm">{p.description}</p>
+        </div>
       </div>
     ));
 }
