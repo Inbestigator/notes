@@ -12,7 +12,6 @@ import { OpenSettings } from "./settings-dialog";
 import { deleteModeAtom, loadingProjectAtom, offsetAtom } from "@/lib/state";
 import { useAtom, useAtomValue } from "jotai";
 import useCreateItem from "@/lib/hooks/useCreateItem";
-import { nanoid } from "nanoid";
 
 export const baseButtonClasses =
   "hover:bg-foreground/10 flex items-center justify-center rounded-lg p-2 transition-all first:rounded-t-full last:rounded-b-full";
@@ -167,7 +166,7 @@ function ProjectSelector() {
           ))}
           <hr className="border-foreground/10 first:hidden" />
           <Link
-            href={`?i=${nanoid(7)}`}
+            href="?"
             className={cn(
               baseButtonClasses,
               "justify-start rounded-lg! text-nowrap",
