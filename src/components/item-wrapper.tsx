@@ -3,7 +3,7 @@ import { ClassValue } from "clsx";
 import { useState } from "react";
 import { useItemOffset } from "./items";
 import { useAtomValue } from "jotai";
-import { deleteModeAtom, offsetAtom } from "@/lib/state";
+import { deleteModeAtom, offsetAtom, zoomAtom } from "@/lib/state";
 import useUpdateItem from "@/lib/hooks/useUpdateItem";
 import useDeleteItem from "@/lib/hooks/useDeleteItem";
 
@@ -23,6 +23,7 @@ function ItemWrapper({
   const [isDragging, setIsDragging] = useState(false);
   const setItem = useUpdateItem(id);
   const globalOffset = useAtomValue(offsetAtom);
+  const zoom = useAtomValue(zoomAtom);
   const deleteItem = useDeleteItem(id);
   const isDeleting = useAtomValue(deleteModeAtom);
 
@@ -31,11 +32,11 @@ function ItemWrapper({
       const target = mde.target as HTMLDivElement;
       const newOffset = {
         x:
-          (mme.clientX - globalOffset.x) / globalOffset.z -
+          (mme.clientX - globalOffset.x) / zoom -
           target.offsetLeft -
           target.offsetWidth / 2,
         y:
-          (mme.clientY - globalOffset.y) / globalOffset.z -
+          (mme.clientY - globalOffset.y) / zoom -
           target.offsetTop -
           target.offsetHeight / 2,
       };

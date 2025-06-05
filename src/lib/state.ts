@@ -45,6 +45,9 @@ export const itemsAtom = focusAtom(currentProjectAtom, (optic) =>
 export const offsetAtom = focusAtom(currentProjectAtom, (optic) =>
   optic.prop("offset"),
 );
+export const zoomAtom = focusAtom(currentProjectAtom, (optic) =>
+  optic.prop("offset").prop("z"),
+);
 
 export const itemFamilyAtom = atomFamily((id: string) =>
   atom((get) => get(itemsAtom).find((i) => i.id === id) as BaseItem),

@@ -7,6 +7,8 @@ import { useEffect, useRef, useState } from "react";
 import type { Plugin } from ".";
 import ItemWrapper from "@/components/item-wrapper";
 import useDebouncedUpdate from "@/lib/hooks/useDebouncedUpdate";
+import { useAtomValue } from "jotai";
+import { zoomAtom } from "@/lib/state";
 
 interface StickyNote extends BaseItem {
   content: string;
@@ -33,6 +35,7 @@ export default {
 } as Plugin<StickyNote>;
 
 function RenderedComponent({ id, item }: { id: string; item: StickyNote }) {
+  const zoom = useAtomValue(zoomAtom);
   const [latestItemValue, updateItem] = useDebouncedUpdate(item.id, item);
   const [isResizing, setIsResizing] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -59,7 +62,7 @@ function RenderedComponent({ id, item }: { id: string; item: StickyNote }) {
     function handleMouseMove(e: MouseEvent) {
       if (!isResizing) return;
       const deltaX = e.clientX - startX.current;
-      const newWidth = Math.max(224, startWidth.current + deltaX);
+      const newWidth = Math.max(224, startWidth.current + deltaX / zoom);
       updateItem({ width: newWidth });
     }
 
@@ -78,7 +81,7 @@ function RenderedComponent({ id, item }: { id: string; item: StickyNote }) {
         window.removeEventListener("mouseup", handleMouseUp);
       };
     }
-  }, [isResizing, latestItemValue.width, updateItem]);
+  }, [isResizing, latestItemValue.width, updateItem, zoom]);
 
   return (
     <ItemWrapper
