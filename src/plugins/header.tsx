@@ -19,8 +19,8 @@ export default {
   numVariants: 3,
   defaultProps: { content: "" },
   dimensions: (variant) => ({
-    width: variant === 1 ? 704.667 : variant === 2 ? 433.667 : 295,
-    height: variant === 1 ? 74 : variant === 2 ? 52 : 44,
+    width: variant === 1 ? 313 : variant === 2 ? 196 : 125,
+    height: variant === 1 ? 61 : variant === 2 ? 39 : 28,
   }),
   HudComponent: ({ variant }) =>
     variant === 1 ? (
@@ -31,7 +31,7 @@ export default {
       <Heading3 className="size-5" />
     ),
   RenderedComponent,
-} as Plugin<Header>;
+} satisfies Plugin<Header>;
 
 function RenderedComponent({ id, item }: { id: string; item: Header }) {
   const [latestItemValue, updateItem] = useDebouncedUpdate(item.id, item);
@@ -46,9 +46,6 @@ function RenderedComponent({ id, item }: { id: string; item: Header }) {
   }
 
   useEffect(calcWidth, [latestItemValue.content]);
-  useEffect(() => {
-    setTimeout(calcWidth, 10);
-  }, []);
 
   return (
     <ItemWrapper
@@ -69,10 +66,7 @@ function RenderedComponent({ id, item }: { id: string; item: Header }) {
         className="absolute top-0 left-0 bg-transparent outline-none"
         placeholder="New header..."
         value={latestItemValue.content}
-        onChange={(e) => {
-          calcWidth();
-          updateItem({ content: e.target.value });
-        }}
+        onChange={(e) => updateItem({ content: e.target.value })}
       />
       <input
         type="text"

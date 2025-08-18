@@ -59,7 +59,7 @@ export default {
   dimensions: { width: 672, height: 384 },
   HudComponent: () => <CalculatorIcon className="size-5" />,
   RenderedComponent,
-} as Plugin<Math>;
+} satisfies Plugin<Math>;
 
 function RenderedComponent({ id, item }: { id: string; item: Math }) {
   return (

@@ -39,7 +39,7 @@ export function OpenSettings() {
 
 function compressExported(exportedProject: object) {
   const compressed = compress(exportedProject);
-  return gzip(JSON.stringify(compressed));
+  return gzip(JSON.stringify(compressed)) as Promise<Uint8Array<ArrayBuffer>>;
 }
 
 export default function SettingsDialog() {

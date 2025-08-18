@@ -12,6 +12,7 @@ export interface Plugin<T> {
   description?: string;
   isRequired?: boolean;
   numVariants?: number;
+  /** Used for placing upon creation */
   dimensions?:
     | ((variant: number) => { width: number; height: number })
     | {
@@ -23,6 +24,14 @@ export interface Plugin<T> {
   RenderedComponent: ({ id, item }: { id: string; item: T }) => React.ReactNode;
 }
 
-const plugins = [textSticky, linedPaper, still, header, math, excalidraw, pdf];
+const plugins = [
+  textSticky,
+  linedPaper,
+  still,
+  header,
+  math,
+  excalidraw,
+  pdf,
+] as Plugin<unknown>[];
 
 export default plugins;

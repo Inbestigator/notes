@@ -21,7 +21,7 @@ export default {
   isRequired: true,
   numVariants: 3,
   defaultProps: { content: "", width: 0 },
-  dimensions: { width: 256, height: 210.5 },
+  dimensions: { width: 256, height: 211 },
   HudComponent: ({ variant }) => (
     <StickyNoteIcon
       className={cn(
@@ -32,7 +32,7 @@ export default {
     />
   ),
   RenderedComponent,
-} as Plugin<StickyNote>;
+} satisfies Plugin<StickyNote>;
 
 function RenderedComponent({ id, item }: { id: string; item: StickyNote }) {
   const zoom = useAtomValue(zoomAtom);

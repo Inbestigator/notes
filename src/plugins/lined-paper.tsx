@@ -20,7 +20,7 @@ export default {
   dimensions: { width: 608, height: 680 },
   HudComponent: () => <NotebookText className="size-5" />,
   RenderedComponent,
-} as Plugin<LinedPaper>;
+} satisfies Plugin<LinedPaper>;
 
 function RenderedComponent({ id, item }: { id: string; item: LinedPaper }) {
   const [latestItemValue, updateItem] = useDebouncedUpdate(item.id, item);

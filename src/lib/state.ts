@@ -30,7 +30,9 @@ export const currentProjectAtom = atom(
           lastModified: Date.now(),
           plugins: new Set(curr.items.map((i) => i.type))
             .values()
-            .filter((ps) => !plugins.find((p) => p.name === ps)?.isRequired)
+            .filter(
+              (ps) => !(plugins.find((p) => p.name === ps)?.isRequired ?? true),
+            )
             .toArray(),
         }),
       );
@@ -39,14 +41,12 @@ export const currentProjectAtom = atom(
     set(hiddenCurrentProjectAtom, curr);
   },
 );
-export const itemsAtom = focusAtom(currentProjectAtom, (optic) =>
-  optic.prop("items"),
+export const itemsAtom = focusAtom(currentProjectAtom, (o) => o.prop("items"));
+export const offsetAtom = focusAtom(currentProjectAtom, (o) =>
+  o.prop("offset"),
 );
-export const offsetAtom = focusAtom(currentProjectAtom, (optic) =>
-  optic.prop("offset"),
-);
-export const zoomAtom = focusAtom(currentProjectAtom, (optic) =>
-  optic.prop("offset").prop("z"),
+export const zoomAtom = focusAtom(currentProjectAtom, (o) =>
+  o.prop("offset").prop("z"),
 );
 
 export const itemFamilyAtom = atomFamily((id: string) =>

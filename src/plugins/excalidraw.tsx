@@ -25,7 +25,7 @@ export default {
   dimensions: { width: 672, height: 384 },
   HudComponent: () => <PenTool className="size-5" />,
   RenderedComponent,
-} as Plugin<Excalidraw>;
+} satisfies Plugin<Excalidraw>;
 
 function RenderedComponent({ id }: { id: string; item: Excalidraw }) {
   return (

@@ -6,7 +6,6 @@ import NextImage from "next/image";
 import Sheet from "../components/primitives/paper";
 import { openFileDB } from "@/lib/db";
 import { ImageIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
 import type { Plugin } from ".";
 import useUpdateItem from "@/lib/hooks/useUpdateItem";
 import useDebouncedUpdate from "@/lib/hooks/useDebouncedUpdate";
@@ -28,11 +27,9 @@ export default {
   isRequired: true,
   defaultProps: { title: "", src: "" },
   dimensions: { width: 416, height: 460 },
-  HudComponent: ({ variant }) => (
-    <ImageIcon className={cn("size-5", variant === 2 && "fill-red-300")} />
-  ),
+  HudComponent: () => <ImageIcon className="size-5" />,
   RenderedComponent,
-} as Plugin<Still>;
+} satisfies Plugin<Still>;
 
 function RenderedComponent({ id, item }: { id: string; item: Still }) {
   const [imageData, setImageData] = useState<ImageData | null>(null);

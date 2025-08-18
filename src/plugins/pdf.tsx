@@ -23,15 +23,15 @@ interface PdfData {
 
 export default {
   name: "pdf",
-  displayName: "PDF",
-  description: "Display PDF files",
+  displayName: "Unstable - PDF",
+  description: "Display PDF files. Works but exports don't include file",
   defaultProps: { src: "" },
   dimensions: { width: 576, height: 680 },
   HudComponent: ({ variant }) => (
     <FileText className={cn("size-5", variant === 2 && "fill-red-300")} />
   ),
   RenderedComponent,
-} as Plugin<Pdf>;
+} satisfies Plugin<Pdf>;
 
 function RenderedComponent({ id, item }: { id: string; item: Pdf }) {
   const [pdfData, setPdfData] = useState<PdfData | null>(null);
