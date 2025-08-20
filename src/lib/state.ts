@@ -28,12 +28,6 @@ export const currentProjectAtom = atom(
         JSON.stringify({
           ...curr,
           lastModified: Date.now(),
-          plugins: new Set(curr.items.map((i) => i.type))
-            .values()
-            .filter(
-              (ps) => !(plugins.find((p) => p.name === ps)?.isRequired ?? true),
-            )
-            .toArray(),
         }),
       );
     }
@@ -47,6 +41,21 @@ export const offsetAtom = focusAtom(currentProjectAtom, (o) =>
 );
 export const zoomAtom = focusAtom(currentProjectAtom, (o) =>
   o.prop("offset").prop("z"),
+);
+export const enabledPluginsAtom = atom(
+  (get) => get(hiddenCurrentProjectAtom).plugins,
+  (get, set, fn: (p: string[]) => string[]) => {
+    const curr = fn(get(enabledPluginsAtom)).filter(
+      (e) => !plugins.find((p) => p.name === e)?.isRequired,
+    );
+    const params = new URLSearchParams(window.location.search);
+    params.keys().forEach((p) => p.startsWith("p:") && params.delete(p));
+    for (const plugin of curr) {
+      params.set("p:" + plugin, "");
+    }
+    window.history.replaceState(null, "", "?" + params.toString());
+    set(currentProjectAtom, { ...get(currentProjectAtom), plugins: curr });
+  },
 );
 
 export const itemFamilyAtom = atomFamily((id: string) =>

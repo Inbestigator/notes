@@ -2,7 +2,11 @@
 
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import { currentProjectAtom, settingsOpenAtom } from "@/lib/state";
+import {
+  currentProjectAtom,
+  enabledPluginsAtom,
+  settingsOpenAtom,
+} from "@/lib/state";
 import { useState } from "react";
 import { Copy, Download, Settings2, UploadCloud } from "lucide-react";
 import { openFileDB } from "@/lib/db";
@@ -19,7 +23,6 @@ import { nanoid } from "nanoid";
 import { gzip } from "node-gzip";
 import { compress } from "compress-json";
 import { Checkbox } from "./ui/checkbox";
-import { useSearchParams } from "next/navigation";
 import plugins from "@/plugins";
 import useDebouncedUpdate from "@/lib/hooks/useDebouncedUpdate";
 import { deleteResource } from "@/lib/hooks/useDeleteItem";
@@ -232,24 +235,19 @@ export default function SettingsDialog() {
 }
 
 function PluginToggler() {
-  const params = useSearchParams();
-
+  const [enabledPlugins, setEnabledPlugins] = useAtom(enabledPluginsAtom);
   return plugins
     .filter((p) => !p.isRequired)
     .map((p) => (
       <div key={p.name} className="items-top flex space-x-2">
         <Checkbox
           id={p.name}
-          checked={params.has("p:" + p.name)}
-          onCheckedChange={(e) => {
-            const params = new URLSearchParams(window.location.search);
-            if (e) {
-              params.set("p:" + p.name, "");
-            } else {
-              params.delete("p:" + p.name);
-            }
-            window.history.replaceState(null, "", "?" + params.toString());
-          }}
+          checked={enabledPlugins.includes(p.name)}
+          onCheckedChange={(e) =>
+            setEnabledPlugins((prev) =>
+              e ? prev.concat(p.name) : prev.filter((n) => n !== p.name),
+            )
+          }
         />
         <div className="grid gap-1.5 leading-none">
           <label
