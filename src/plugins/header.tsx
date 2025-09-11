@@ -38,14 +38,12 @@ function RenderedComponent({ id, item }: { id: string; item: Header }) {
   const spanRef = useRef<HTMLSpanElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  function calcWidth() {
+  useEffect(() => {
     if (inputRef.current && spanRef.current) {
       const width = spanRef.current.offsetWidth;
-      inputRef.current.style.width = `${width}px`;
+      inputRef.current.style.width = `${width + 8}px`;
     }
-  }
-
-  useEffect(calcWidth, [latestItemValue.content]);
+  }, [latestItemValue.content]);
 
   return (
     <ItemWrapper
@@ -63,7 +61,7 @@ function RenderedComponent({ id, item }: { id: string; item: Header }) {
       <input
         ref={inputRef}
         type="text"
-        className="absolute top-0 left-0 bg-transparent outline-none"
+        className="bg-transparent outline-none"
         placeholder="New header..."
         value={latestItemValue.content}
         onChange={(e) => updateItem({ content: e.target.value })}
@@ -73,7 +71,10 @@ function RenderedComponent({ id, item }: { id: string; item: Header }) {
         className="pointer-events-none invisible w-0"
         disabled
       />
-      <span ref={spanRef} className="invisible whitespace-pre">
+      <span
+        ref={spanRef}
+        className="pointer-events-none invisible absolute left-0 whitespace-pre"
+      >
         {latestItemValue.content || "New header..."}
       </span>
     </ItemWrapper>
