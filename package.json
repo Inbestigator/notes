@@ -3,10 +3,9 @@
     "dev": "next dev --turbo",
     "build": "next build --turbo",
     "start": "next start --turbo",
-    "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
-    "check": "bun typecheck && bun lint --fix && bun format"
+    "check": "bun typecheck && eslint --fix && bun format"
   },
   "dependencies": {
     "@enc/core": "npm:@jsr/enc__core",
@@ -35,7 +34,6 @@
     "use-debounce": "^10.0.6"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.1",
     "@tailwindcss/postcss": "^4.1.13",
     "@types/desmos": "^1.11.0",
     "@types/node": "^24.3.1",
@@ -43,7 +41,7 @@
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",
     "eslint": "^9.35.0",
-    "eslint-config-next": "15.5.3",
+    "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.6.14",
     "tailwindcss": "^4.1.13",

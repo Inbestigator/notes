@@ -39,11 +39,13 @@ function RenderedComponent({ id, item }: { id: string; item: Header }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (inputRef.current && spanRef.current) {
-      const width = spanRef.current.offsetWidth;
-      inputRef.current.style.width = `${width + 8}px`;
-    }
-  }, [latestItemValue.content]);
+    if (!spanRef.current || !inputRef.current) return;
+    const observer = new ResizeObserver(() => {
+      inputRef.current!.style.width = `${spanRef.current!.offsetWidth}px`;
+    });
+    observer.observe(spanRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <ItemWrapper
@@ -65,11 +67,6 @@ function RenderedComponent({ id, item }: { id: string; item: Header }) {
         placeholder="New header..."
         value={latestItemValue.content}
         onChange={(e) => updateItem({ content: e.target.value })}
-      />
-      <input
-        type="text"
-        className="pointer-events-none invisible w-0"
-        disabled
       />
       <span
         ref={spanRef}

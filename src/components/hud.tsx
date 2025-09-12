@@ -148,10 +148,7 @@ function ProjectSelector() {
         >
           {projects.map((p) => (
             <Link
-              onClick={(e) => {
-                if (e.metaKey) return;
-                setLoading(true);
-              }}
+              onClick={(e) => !e.metaKey && setLoading(true)}
               onNavigate={() => setLoading(false)}
               replace
               key={p.id}
