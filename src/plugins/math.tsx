@@ -43,7 +43,7 @@ function Calculator({ id, initial }: { id: string; initial: unknown }) {
   return (
     <>
       <Script
-        src="https://www.desmos.com/api/v1.11/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"
+        src="https://www.desmos.com/api/v1.11/calculator.js?apiKey=5e27123cdb664b01b5d94153f0a04651"
         crossOrigin="anonymous"
       />
       <div ref={calculatorRef} className="h-96 w-2xl" />
