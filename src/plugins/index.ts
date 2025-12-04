@@ -24,6 +24,4 @@ export interface Plugin<T> {
   RenderedComponent: ({ id, item }: { id: string; item: T }) => React.ReactNode;
 }
 
-const plugins = [textSticky, linedPaper, still, header, math, excalidraw, pdf] as Plugin<unknown>[];
-
-export default plugins;
+export default [textSticky, linedPaper, still, header, math, excalidraw, pdf] as Plugin<unknown>[];

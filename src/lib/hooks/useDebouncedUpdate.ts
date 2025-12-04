@@ -8,10 +8,7 @@ export default function useDebouncedUpdate<T>(id: string, initial: T, timeout = 
   const action = callback ? callback : updateItem;
   const debouncedDetails = useDebouncedCallback(action, timeout);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: Run once
-  useEffect(() => {
-    setValue(initial);
-  }, []);
+  useEffect(() => setValue(initial), [initial]);
 
   return [
     value,
