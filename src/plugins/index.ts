@@ -1,10 +1,10 @@
-import linedPaper from "./lined-paper";
-import textSticky from "./text-sticky";
-import still from "./still";
-import header from "./header";
-import math from "./math";
 import excalidraw from "./excalidraw";
+import header from "./header";
+import linedPaper from "./lined-paper";
+import math from "./math";
 import pdf from "./pdf";
+import still from "./still";
+import textSticky from "./text-sticky";
 
 export interface Plugin<T> {
   name: string;
@@ -24,14 +24,6 @@ export interface Plugin<T> {
   RenderedComponent: ({ id, item }: { id: string; item: T }) => React.ReactNode;
 }
 
-const plugins = [
-  textSticky,
-  linedPaper,
-  still,
-  header,
-  math,
-  excalidraw,
-  pdf,
-] as Plugin<unknown>[];
+const plugins = [textSticky, linedPaper, still, header, math, excalidraw, pdf] as Plugin<unknown>[];
 
 export default plugins;

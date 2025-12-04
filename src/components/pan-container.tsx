@@ -1,14 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
-import { offsetAtom } from "@/lib/state";
 import { useAtom } from "jotai";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { offsetAtom } from "@/lib/state";
 
-export default function PanContainer({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function PanContainer({ children }: { children: React.ReactNode }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [offset, setOffset] = useAtom(offsetAtom);
   const [hasStarted, setHasStarted] = useState(false);
@@ -24,8 +20,7 @@ export default function PanContainer({
 
       if (!isZooming) {
         const elUnderPointer = document.elementFromPoint(e.clientX, e.clientY);
-        if (!elUnderPointer?.hasAttribute("data-pannable") && !hasStarted)
-          return;
+        if (!elUnderPointer?.hasAttribute("data-pannable") && !hasStarted) return;
         setHasStarted(true);
         e.preventDefault();
 
@@ -40,10 +35,7 @@ export default function PanContainer({
       } else {
         e.preventDefault();
         const zoomFactor = 0.005;
-        const newScale = Math.min(
-          2,
-          Math.max(0.25, offset.z * (1 - e.deltaY * zoomFactor)),
-        );
+        const newScale = Math.min(2, Math.max(0.25, offset.z * (1 - e.deltaY * zoomFactor)));
 
         const rect = containerRef.current.getBoundingClientRect();
         const mouseX = e.clientX - rect.left;
@@ -68,9 +60,7 @@ export default function PanContainer({
   const handleMouseUpDown = useCallback((e: MouseEvent) => {
     if (e.button === 1) {
       isMiddleClicking.current = !isMiddleClicking.current;
-      lastMousePos.current = isMiddleClicking.current
-        ? { x: e.clientX, y: e.clientY }
-        : null;
+      lastMousePos.current = isMiddleClicking.current ? { x: e.clientX, y: e.clientY } : null;
       e.preventDefault();
     }
   }, []);
@@ -96,10 +86,7 @@ export default function PanContainer({
   const handleTouchStart = useCallback((e: TouchEvent) => {
     if (e.touches.length === 1) {
       const touch = e.touches[0];
-      const elUnderPointer = document.elementFromPoint(
-        touch.clientX,
-        touch.clientY,
-      );
+      const elUnderPointer = document.elementFromPoint(touch.clientX, touch.clientY);
       if (elUnderPointer?.hasAttribute("data-pannable")) {
         lastMousePos.current = { x: touch.clientX, y: touch.clientY };
       }
@@ -151,14 +138,7 @@ export default function PanContainer({
       el.removeEventListener("touchmove", handleTouchMove);
       el.removeEventListener("touchend", handleTouchEnd);
     };
-  }, [
-    handleWheel,
-    handleMouseUpDown,
-    handleMouseMove,
-    handleTouchStart,
-    handleTouchMove,
-    handleTouchEnd,
-  ]);
+  }, [handleWheel, handleMouseUpDown, handleMouseMove, handleTouchStart, handleTouchMove, handleTouchEnd]);
 
   return (
     <div

@@ -1,6 +1,6 @@
 import { useAtomValue, useSetAtom } from "jotai";
-import { itemFamilyAtom, itemsAtom } from "../state";
 import { openFileDB } from "../db";
+import { itemFamilyAtom, itemsAtom } from "../state";
 
 export async function deleteResource(src: string) {
   const db = await openFileDB();
@@ -14,11 +14,7 @@ export default function useDeleteItem(id: string) {
   const setItems = useSetAtom(itemsAtom);
 
   return () => {
-    if (
-      "src" in item &&
-      typeof item.src === "string" &&
-      item.src.startsWith("upload:")
-    ) {
+    if ("src" in item && typeof item.src === "string" && item.src.startsWith("upload:")) {
       deleteResource(item.src);
     }
     itemFamilyAtom.remove(id);

@@ -1,17 +1,10 @@
-import {
-  aesKey,
-  decrypt,
-  encrypt,
-  exportKey,
-  generateKey,
-  importKey,
-} from "@enc/core";
+import { aesKey, decrypt, encrypt, exportKey, generateKey, importKey } from "@enc/core";
 
 const aesOptions = aesKey("Integrity protection", 128);
 
 export async function generateEncryptionKey() {
   const key = await generateKey(aesOptions);
-  return (await exportKey("jwk", key)).k!;
+  return (await exportKey("jwk", key)).k as string;
 }
 
 const getCryptoKey = (key: string, type: KeyType) =>
@@ -29,21 +22,14 @@ const getCryptoKey = (key: string, type: KeyType) =>
     false,
   );
 
-export async function encryptData(
-  publicKey: string,
-  data: Uint8Array<ArrayBuffer>,
-) {
+export async function encryptData(publicKey: string, data: Uint8Array<ArrayBuffer>) {
   const key = await getCryptoKey(publicKey, "public");
   const iv = window.crypto.getRandomValues(new Uint8Array(12));
   const encrypted = await encrypt(data.buffer, key, { iv });
   return { encrypted, iv };
 }
 
-export async function decryptData(
-  iv: Uint8Array<ArrayBuffer>,
-  encrypted: Uint8Array<ArrayBuffer>,
-  privateKey: string,
-) {
+export async function decryptData(iv: Uint8Array<ArrayBuffer>, encrypted: Uint8Array<ArrayBuffer>, privateKey: string) {
   const key = await getCryptoKey(privateKey, "private");
   return decrypt(encrypted.buffer, key, { iv });
 }
@@ -67,12 +53,7 @@ const DATA_VIEW_BITS_MAP = { 1: 8, 2: 16, 4: 32 } as const;
 // getter
 function dataView(buffer: Uint8Array, bytes: 1 | 2 | 4, offset: number): number;
 // setter
-function dataView(
-  buffer: Uint8Array,
-  bytes: 1 | 2 | 4,
-  offset: number,
-  value: number,
-): Uint8Array;
+function dataView(buffer: Uint8Array, bytes: 1 | 2 | 4, offset: number, value: number): Uint8Array;
 /**
  * abstraction over DataView that serves as a typed getter/setter in case
  * you're using constants for the byte size and want to ensure there's no
@@ -80,17 +61,10 @@ function dataView(
  *
  * DataView serves for an endian-agnostic handling of numbers in ArrayBuffers.
  */
-function dataView(
-  buffer: Uint8Array,
-  bytes: 1 | 2 | 4,
-  offset: number,
-  value?: number,
-): Uint8Array | number {
+function dataView(buffer: Uint8Array, bytes: 1 | 2 | 4, offset: number, value?: number): Uint8Array | number {
   if (value != null) {
-    if (value > Math.pow(2, DATA_VIEW_BITS_MAP[bytes]) - 1) {
-      throw new Error(
-        `attempting to set value higher than the allocated bytes (value: ${value}, bytes: ${bytes})`,
-      );
+    if (value > 2 ** DATA_VIEW_BITS_MAP[bytes] - 1) {
+      throw new Error(`attempting to set value higher than the allocated bytes (value: ${value}, bytes: ${bytes})`);
     }
     const method = `setUint${DATA_VIEW_BITS_MAP[bytes]}` as const;
     new DataView(buffer.buffer)[method](offset, value);
@@ -128,12 +102,7 @@ export const concatBuffers = (...buffers: Uint8Array[]) => {
   cursor += VERSION_DATAVIEW_BYTES;
 
   for (const buffer of buffers) {
-    dataView(
-      bufferView,
-      NEXT_CHUNK_SIZE_DATAVIEW_BYTES,
-      cursor,
-      buffer.byteLength,
-    );
+    dataView(bufferView, NEXT_CHUNK_SIZE_DATAVIEW_BYTES, cursor, buffer.byteLength);
     cursor += NEXT_CHUNK_SIZE_DATAVIEW_BYTES;
 
     bufferView.set(buffer, cursor);
@@ -152,11 +121,7 @@ export const splitBuffers = (concatenatedBuffer: Uint8Array) => {
   cursor += VERSION_DATAVIEW_BYTES;
 
   while (true) {
-    const chunkSize = dataView(
-      concatenatedBuffer,
-      NEXT_CHUNK_SIZE_DATAVIEW_BYTES,
-      cursor,
-    );
+    const chunkSize = dataView(concatenatedBuffer, NEXT_CHUNK_SIZE_DATAVIEW_BYTES, cursor);
     cursor += NEXT_CHUNK_SIZE_DATAVIEW_BYTES;
 
     buffers.push(concatenatedBuffer.slice(cursor, cursor + chunkSize));

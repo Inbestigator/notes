@@ -1,40 +1,29 @@
 "use client";
 
-import { Input } from "./ui/input";
-import { Button } from "./ui/button";
-import {
-  currentProjectAtom,
-  enabledPluginsAtom,
-  settingsOpenAtom,
-} from "@/lib/state";
-import { useState } from "react";
-import { Copy, Download, Settings2, UploadCloud } from "lucide-react";
-import { openFileDB } from "@/lib/db";
-import {
-  concatBuffers,
-  encryptData,
-  generateEncryptionKey,
-} from "@/lib/encryption";
 import { upload } from "@vercel/blob/client";
+import { compress } from "compress-json";
 import { useAtom, useSetAtom } from "jotai";
-import { baseButtonClasses } from "./hud";
-import { getProjects } from "./project-manager";
+import { Copy, Download, Settings2, UploadCloud } from "lucide-react";
 import { nanoid } from "nanoid";
 import { gzip } from "node-gzip";
-import { compress } from "compress-json";
-import { Checkbox } from "./ui/checkbox";
-import plugins from "@/plugins";
+import { useState } from "react";
+import { openFileDB } from "@/lib/db";
+import { concatBuffers, encryptData, generateEncryptionKey } from "@/lib/encryption";
 import useDebouncedUpdate from "@/lib/hooks/useDebouncedUpdate";
 import { deleteResource } from "@/lib/hooks/useDeleteItem";
+import { useEnabledPlugins } from "@/lib/hooks/useEnabledPlugins";
+import { currentProjectAtom, settingsOpenAtom } from "@/lib/state";
+import plugins from "@/plugins";
+import { baseButtonClasses } from "./hud";
+import { getProjects } from "./project-manager";
+import { Button } from "./ui/button";
+import { Checkbox } from "./ui/checkbox";
+import { Input } from "./ui/input";
 
 export function OpenSettings() {
   const setIsSettingsOpen = useSetAtom(settingsOpenAtom);
   return (
-    <button
-      title="Settings"
-      className={baseButtonClasses}
-      onClick={() => setIsSettingsOpen((p) => !p)}
-    >
+    <button type="button" title="Settings" className={baseButtonClasses} onClick={() => setIsSettingsOpen((p) => !p)}>
       <Settings2 className="size-5" />
     </button>
   );
@@ -47,18 +36,13 @@ function compressExported(exportedProject: object) {
 
 export default function SettingsDialog() {
   const [open, setOpen] = useAtom(settingsOpenAtom);
-  const [executingAction, setExecutingAction] = useState<
-    false | "export" | "share" | "delete"
-  >(false);
+  const [executingAction, setExecutingAction] = useState<false | "export" | "share" | "delete">(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [shareLink, setSharelink] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
   const [currentProject, setCurrentProject] = useAtom(currentProjectAtom);
-  const [title, setTitle] = useDebouncedUpdate(
-    currentProject.id,
-    currentProject.title,
-    150,
-    (v) => setCurrentProject((p) => ({ ...p, title: v })),
+  const [title, setTitle] = useDebouncedUpdate(currentProject.id, currentProject.title, 150, (v) =>
+    setCurrentProject((p) => ({ ...p, title: v })),
   );
 
   async function exportProject() {
@@ -66,12 +50,7 @@ export default function SettingsDialog() {
     const files: Record<string, Record<string, unknown>> = {};
 
     for (const item of currentProject.items) {
-      if (
-        !("src" in item) ||
-        typeof item.src !== "string" ||
-        !item.src.startsWith("upload:")
-      )
-        continue;
+      if (!("src" in item) || typeof item.src !== "string" || !item.src.startsWith("upload:")) continue;
 
       const store = item.src.split(":")[1];
       const tx = db.transaction(store, "readonly");
@@ -93,22 +72,19 @@ export default function SettingsDialog() {
   return (
     <div
       data-visible={open}
-      className="absolute top-1/2 left-1/2 flex h-dvh w-dvw -translate-x-1/2 -translate-y-1/2 cursor-default items-center justify-center backdrop-blur-xl transition-all data-[visible=false]:pointer-events-none data-[visible=false]:opacity-0"
+      className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2 flex h-dvh w-dvw cursor-default items-center justify-center backdrop-blur-xl transition-all data-[visible=false]:pointer-events-none data-[visible=false]:opacity-0"
       onClick={() => setOpen(false)}
+      onKeyDown={() => {}}
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="bg-background flex min-h-64 w-full max-w-xl flex-col justify-between gap-2 rounded-lg border p-4"
+        onKeyDown={() => {}}
+        className="flex min-h-64 w-full max-w-xl flex-col justify-between gap-2 rounded-lg border bg-background p-4"
       >
         <div className="flex flex-col gap-2">
-          <h3 className="text-2xl font-semibold">Settings</h3>
+          <h3 className="font-semibold text-2xl">Settings</h3>
           <b className="-mb-2">Title</b>
-          <Input
-            type="text"
-            placeholder="Project title"
-            onChange={(e) => setTitle(e.target.value)}
-            value={title}
-          />
+          <Input type="text" placeholder="Project title" onChange={(e) => setTitle(e.target.value)} value={title} />
           <b className="-mb-2">Export</b>
           <div className="flex gap-2">
             <Button
@@ -144,23 +120,16 @@ export default function SettingsDialog() {
                 const compressed = await compressExported(exported);
                 const key = await generateEncryptionKey();
                 const { encrypted, iv } = await encryptData(key, compressed);
-                const combinedBuffer = concatBuffers(
-                  iv,
-                  new Uint8Array(encrypted),
-                );
+                const combinedBuffer = concatBuffers(iv, new Uint8Array(encrypted));
                 try {
-                  const { pathname } = await upload(
-                    currentProject.id,
-                    Buffer.from(combinedBuffer),
-                    {
-                      access: "public",
-                      handleUploadUrl: "/api/store",
-                      contentType: "application/gzip",
-                      multipart: true,
-                      onUploadProgress: (e) => setUploadProgress(e.percentage),
-                    },
-                  );
-                  setSharelink(location.origin + `/#s=${pathname},${key}`);
+                  const { pathname } = await upload(currentProject.id, Buffer.from(combinedBuffer), {
+                    access: "public",
+                    handleUploadUrl: "/api/store",
+                    contentType: "application/gzip",
+                    multipart: true,
+                    onUploadProgress: (e) => setUploadProgress(e.percentage),
+                  });
+                  setSharelink(`${location.origin}/#s=${pathname},${key}`);
                 } catch {}
                 setExecutingAction(false);
               }}
@@ -169,10 +138,7 @@ export default function SettingsDialog() {
             >
               {shareLink ? (
                 <>
-                  <Copy
-                    data-copied={isCopied}
-                    className="transition-all duration-300 data-[copied=false]:opacity-50"
-                  />
+                  <Copy data-copied={isCopied} className="transition-all duration-300 data-[copied=false]:opacity-50" />
                   {isCopied ? "Copied!" : "Click to copy link"}
                 </>
               ) : (
@@ -199,27 +165,20 @@ export default function SettingsDialog() {
             variant="destructive"
             disabled={!!executingAction}
             onClick={() => {
-              if (
-                window.confirm("Are you sure you want to delete this project?")
-              ) {
+              if (window.confirm("Are you sure you want to delete this project?")) {
                 setExecutingAction("delete");
                 const nextProject = getProjects()
                   .filter((p) => p.id !== currentProject.id)
                   .shift();
                 for (const item of currentProject.items) {
-                  if (
-                    "src" in item &&
-                    typeof item.src === "string" &&
-                    item.src.startsWith("upload:")
-                  ) {
+                  if ("src" in item && typeof item.src === "string" && item.src.startsWith("upload:")) {
                     deleteResource(item.src);
                   }
                 }
-                localStorage.removeItem("project-" + currentProject.id);
+                localStorage.removeItem(`project-${currentProject.id}`);
                 const params = new URLSearchParams();
                 params.set("i", nextProject?.id ?? nanoid(7));
-                nextProject?.plugins.forEach((p) => params.set("p:" + p, ""));
-                window.history.replaceState(null, "", "?" + params.toString());
+                window.history.replaceState(null, "", `?${params.toString()}`);
                 setExecutingAction(false);
                 setOpen(false);
               }
@@ -235,7 +194,7 @@ export default function SettingsDialog() {
 }
 
 function PluginToggler() {
-  const [enabledPlugins, setEnabledPlugins] = useAtom(enabledPluginsAtom);
+  const enabledPlugins = useEnabledPlugins();
   return plugins
     .filter((p) => !p.isRequired)
     .map((p) => (
@@ -244,15 +203,13 @@ function PluginToggler() {
           id={p.name}
           checked={enabledPlugins.includes(p.name)}
           onCheckedChange={(e) =>
-            setEnabledPlugins((prev) =>
-              e ? prev.concat(p.name) : prev.filter((n) => n !== p.name),
-            )
+            enabledPlugins.set((prev) => (e ? prev.concat(p.name) : prev.filter((n) => n !== p.name)))
           }
         />
         <div className="grid gap-1.5 leading-none">
           <label
             htmlFor={p.name}
-            className="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            className="font-medium text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
           >
             {p.displayName ?? p.name}
           </label>

@@ -1,10 +1,10 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
-import plugins from "@/plugins";
-import { highestZAtom, itemFamilyAtom, itemsAtom } from "@/lib/state";
 import { useAtomValue } from "jotai";
+import { useEnabledPlugins } from "@/lib/hooks/useEnabledPlugins";
 import useUpdateItem from "@/lib/hooks/useUpdateItem";
+import { highestZAtom, itemFamilyAtom, itemsAtom } from "@/lib/state";
+import plugins from "@/plugins";
 
 export interface BaseItem {
   id: string;
@@ -32,7 +32,7 @@ export default function ItemList() {
 }
 
 function Item({ id }: { id: string }) {
-  const searchParams = useSearchParams();
+  const enabledPlugins = useEnabledPlugins();
   const item = useAtomValue(itemFamilyAtom(id));
   const highestZ = useAtomValue(highestZAtom);
   const setItem = useUpdateItem(id);
@@ -43,16 +43,12 @@ function Item({ id }: { id: string }) {
   }
 
   const plugin = plugins
-    .filter((p) => p.isRequired || searchParams.has("p:" + p.name))
+    .filter((p) => p.isRequired || enabledPlugins.includes(p.name))
     .find((p) => p.name === item.type);
   if (!plugin) return null;
 
   return (
-    <div
-      key={item.id}
-      onDoubleClick={handleBringToFront}
-      className="font-(family-name:--font-excalifont)"
-    >
+    <div key={item.id} onDoubleClick={handleBringToFront} className="font-(family-name:--font-excalifont)">
       <plugin.RenderedComponent id={item.id} item={item as never} />
     </div>
   );

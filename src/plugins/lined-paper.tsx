@@ -1,11 +1,11 @@
 "use client";
 
-import type { BaseItem } from "@/components/items";
 import { NotebookText } from "lucide-react";
-import type { Plugin } from ".";
-import Sheet from "@/components/primitives/paper";
 import { useEffect, useRef } from "react";
+import type { BaseItem } from "@/components/items";
+import Sheet from "@/components/primitives/paper";
 import useDebouncedUpdate from "@/lib/hooks/useDebouncedUpdate";
+import type { Plugin } from ".";
 
 interface LinedPaper extends BaseItem {
   title: string;
@@ -46,13 +46,13 @@ function RenderedComponent({ id, item }: { id: string; item: LinedPaper }) {
             backgroundImage:
               "repeating-linear-gradient(0deg, transparent 0, transparent calc(1lh - 1px), oklch(70.4% 0.191 22.216) 1lh)",
           }}
-          className="sticky top-0 z-10 w-full border-none border-red-400 bg-neutral-50 text-xl font-medium outline-none"
+          className="sticky top-0 z-10 w-full border-red-400 border-none bg-neutral-50 font-medium text-xl outline-none"
           onChange={(e) => updateItem({ title: e.target.value })}
           value={latestItemValue.title}
         />
         <div className="relative h-fit">
           <div
-            className="pointer-events-none absolute inset-0 -z-10"
+            className="-z-10 pointer-events-none absolute inset-0"
             style={{
               backgroundPositionY: "calc(1lh - 6px)",
               backgroundSize: "100% 1lh",

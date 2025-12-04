@@ -1,7 +1,7 @@
 "use client";
 
-import { loadingProjectAtom } from "@/lib/state";
 import { useAtomValue } from "jotai";
+import { loadingProjectAtom } from "@/lib/state";
 
 export default function Loading() {
   const isLoading = useAtomValue(loadingProjectAtom);

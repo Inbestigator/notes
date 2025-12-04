@@ -1,12 +1,12 @@
 "use client";
 
-import type { BaseItem } from "@/components/items";
-import type { Plugin } from ".";
 import { Heading1, Heading2, Heading3 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import ItemWrapper from "@/components/item-wrapper";
 import { useEffect, useRef } from "react";
+import ItemWrapper from "@/components/item-wrapper";
+import type { BaseItem } from "@/components/items";
 import useDebouncedUpdate from "@/lib/hooks/useDebouncedUpdate";
+import { cn } from "@/lib/utils";
+import type { Plugin } from ".";
 
 interface Header extends BaseItem {
   content: string;
@@ -41,7 +41,9 @@ function RenderedComponent({ id, item }: { id: string; item: Header }) {
   useEffect(() => {
     if (!spanRef.current || !inputRef.current) return;
     const observer = new ResizeObserver(() => {
-      inputRef.current!.style.width = `${spanRef.current!.offsetWidth}px`;
+      if (inputRef.current && spanRef.current) {
+        inputRef.current.style.width = `${spanRef.current.offsetWidth}px`;
+      }
     });
     observer.observe(spanRef.current);
     return () => observer.disconnect();
@@ -53,10 +55,10 @@ function RenderedComponent({ id, item }: { id: string; item: Header }) {
       className={cn(
         "shadow-none",
         item.variant === 2
-          ? "text-3xl font-semibold"
+          ? "font-semibold text-3xl"
           : item.variant === 3
-            ? "text-xl font-medium"
-            : "text-5xl font-bold",
+            ? "font-medium text-xl"
+            : "font-bold text-5xl",
       )}
       id={id}
     >
@@ -68,10 +70,7 @@ function RenderedComponent({ id, item }: { id: string; item: Header }) {
         value={latestItemValue.content}
         onChange={(e) => updateItem({ content: e.target.value })}
       />
-      <span
-        ref={spanRef}
-        className="pointer-events-none invisible absolute left-0 whitespace-pre"
-      >
+      <span ref={spanRef} className="pointer-events-none invisible absolute left-0 whitespace-pre">
         {latestItemValue.content || "New header..."}
       </span>
     </ItemWrapper>

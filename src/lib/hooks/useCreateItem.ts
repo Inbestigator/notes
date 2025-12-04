@@ -1,6 +1,6 @@
 import { useAtomValue, useSetAtom } from "jotai";
+import type { BaseItem } from "@/components/items";
 import { highestZAtom, itemsAtom, offsetAtom } from "../state";
-import { BaseItem } from "@/components/items";
 
 export default function useCreateItem() {
   const setItems = useSetAtom(itemsAtom);
@@ -19,12 +19,8 @@ export default function useCreateItem() {
         ...item,
         offset: dimensions
           ? {
-              x:
-                -dimensions.width +
-                (window.innerWidth - 52 - offset.x) / offset.z,
-              y:
-                -dimensions.height / 2 +
-                (window.innerHeight / 2 - offset.y) / offset.z,
+              x: -dimensions.width + (window.innerWidth - 52 - offset.x) / offset.z,
+              y: -dimensions.height / 2 + (window.innerHeight / 2 - offset.y) / offset.z,
             }
           : { x: 0, y: 0 },
         z: highestZ + 1,

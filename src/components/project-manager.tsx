@@ -1,19 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
+import { decompress } from "compress-json";
+import { useAtom, useSetAtom } from "jotai";
+import { nanoid } from "nanoid";
 import { useSearchParams } from "next/navigation";
-import { BaseItem } from "./items";
+import { ungzip } from "node-gzip";
+import { useEffect } from "react";
 import { openFileDB } from "@/lib/db";
 import { decryptData, splitBuffers } from "@/lib/encryption";
-import { useAtom, useSetAtom } from "jotai";
-import {
-  currentProjectAtom,
-  loadingProjectAtom,
-  randomProject,
-} from "@/lib/state";
-import { nanoid } from "nanoid";
-import { decompress } from "compress-json";
-import { ungzip } from "node-gzip";
+import { currentProjectAtom, loadingProjectAtom, randomProject } from "@/lib/state";
+import type { BaseItem } from "./items";
 
 export interface Project {
   id: string;
@@ -32,9 +28,7 @@ export function getProjects(): Project[] {
     .sort((a, b) => b.lastModified - a.lastModified)
     .map((p) => ({
       ...p,
-      items: Array.isArray(p.items)
-        ? p.items
-        : (Object.values(p.items) as BaseItem[]),
+      items: Array.isArray(p.items) ? p.items : (Object.values(p.items) as BaseItem[]),
     }));
   return projects;
 }
@@ -74,8 +68,7 @@ async function loadExportedProject({
   const params = new URLSearchParams(window.location.search);
   params.set("i", project.id);
   params.delete("e");
-  project.plugins.forEach((p) => params.set("p:" + p, ""));
-  window.history.replaceState(null, "", "?" + params.toString());
+  window.history.replaceState(null, "", `?${params.toString()}`);
   return project;
 }
 
@@ -107,7 +100,7 @@ export default function ProjectManager() {
       if (externalDownload) {
         const res = await fetch(externalDownload);
         if (!res.ok) return;
-        let arrayBuf;
+        let arrayBuf: ArrayBuffer;
         if (key) {
           const arrayBuffer = await res.arrayBuffer();
           const [iv, encrypted] = splitBuffers(new Uint8Array(arrayBuffer));
@@ -128,7 +121,7 @@ export default function ProjectManager() {
         const params = new URLSearchParams(window.location.search);
         params.set("i", nanoid(7));
         params.delete("e");
-        window.history.replaceState(null, "", "?" + params.toString());
+        window.history.replaceState(null, "", `?${params.toString()}`);
         setLoading(false);
         return;
       }
@@ -138,7 +131,7 @@ export default function ProjectManager() {
       const initialY = Number(searchParams.get("y") ?? NaN);
       const initialZ = Number(searchParams.get("z") ?? NaN);
 
-      if (!isNaN(initialX) && !isNaN(initialY) && !isNaN(initialZ)) {
+      if (!Number.isNaN(initialX) && !Number.isNaN(initialY) && !Number.isNaN(initialZ)) {
         project.offset = { x: initialX, y: initialY, z: initialZ };
       }
       setCurrentProject(project);

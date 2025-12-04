@@ -1,5 +1,5 @@
-import { BaseItem } from "@/components/items";
 import { useSetAtom } from "jotai";
+import type { BaseItem } from "@/components/items";
 import { itemsAtom } from "../state";
 
 export default function useUpdateItem(id: string) {
@@ -12,10 +12,7 @@ export default function useUpdateItem(id: string) {
       if (typeof item === "function") {
         item = item(prev);
       }
-      return [
-        ...prev.filter((i) => i.id !== id),
-        { ...prevItem, ...(item as BaseItem) },
-      ];
+      return [...prev.filter((i) => i.id !== id), { ...prevItem, ...(item as BaseItem) }];
     });
   };
 }

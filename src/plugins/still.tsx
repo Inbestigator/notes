@@ -1,14 +1,14 @@
 "use client";
 
-import type { BaseItem } from "../components/items";
-import { useEffect, useState } from "react";
-import NextImage from "next/image";
-import Sheet from "../components/primitives/paper";
-import { openFileDB } from "@/lib/db";
 import { ImageIcon } from "lucide-react";
-import type { Plugin } from ".";
-import useUpdateItem from "@/lib/hooks/useUpdateItem";
+import NextImage from "next/image";
+import { useEffect, useState } from "react";
+import { openFileDB } from "@/lib/db";
 import useDebouncedUpdate from "@/lib/hooks/useDebouncedUpdate";
+import useUpdateItem from "@/lib/hooks/useUpdateItem";
+import type { BaseItem } from "../components/items";
+import Sheet from "../components/primitives/paper";
+import type { Plugin } from ".";
 
 interface Still extends BaseItem {
   title: string;
@@ -58,11 +58,7 @@ function RenderedComponent({ id, item }: { id: string; item: Still }) {
           const file = e.dataTransfer.files[0];
           const remoteUrl = e.dataTransfer.getData("URL");
 
-          async function processImage(
-            img: HTMLImageElement,
-            mimeType: string,
-            name: string,
-          ) {
+          async function processImage(img: HTMLImageElement, mimeType: string, name: string) {
             const canvas = document.createElement("canvas");
             const ctx = canvas.getContext("2d");
             if (!ctx) return;
@@ -86,20 +82,17 @@ function RenderedComponent({ id, item }: { id: string; item: Still }) {
             ctx.drawImage(img, 0, 0, width, height);
 
             const base64: string = canvas.toDataURL(mimeType);
-            const imgId = "upload:images:" + crypto.randomUUID();
+            const imgId = `upload:images:${crypto.randomUUID()}`;
 
             const db = await openFileDB();
             const tx = db.transaction("images", "readwrite");
 
-            await Promise.all([
-              tx.store.add({ type: mimeType, src: base64, name }, imgId),
-              tx.store.delete(item.src),
-            ]);
+            await Promise.all([tx.store.add({ type: mimeType, src: base64, name }, imgId), tx.store.delete(item.src)]);
 
             setItem({ src: imgId });
           }
 
-          if (file && file.type.startsWith("image/")) {
+          if (file?.type.startsWith("image/")) {
             const reader = new FileReader();
             const img = new Image();
 
@@ -115,11 +108,7 @@ function RenderedComponent({ id, item }: { id: string; item: Still }) {
             img.crossOrigin = "anonymous";
 
             img.onload = () =>
-              processImage(
-                img,
-                "image/png",
-                new URL(remoteUrl).pathname.split("/").pop() ?? "image.png",
-              );
+              processImage(img, "image/png", new URL(remoteUrl).pathname.split("/").pop() ?? "image.png");
             img.src = remoteUrl;
           }
         }}
@@ -137,10 +126,8 @@ function RenderedComponent({ id, item }: { id: string; item: Still }) {
       </div>
       <input
         type="text"
-        className="mt-4 w-full text-xl font-medium outline-none"
-        placeholder={
-          imageData?.name ? `A photo of ${imageData.name}` : "A photo of..."
-        }
+        className="mt-4 w-full font-medium text-xl outline-none"
+        placeholder={imageData?.name ? `A photo of ${imageData.name}` : "A photo of..."}
         onChange={(e) => updateItem({ title: e.target.value })}
         value={latestItemValue.title}
       />

@@ -1,17 +1,18 @@
 "use client";
 
-import { Fullscreen, PackageOpen, Shredder, Shrink } from "lucide-react";
-import { getProjects } from "./project-manager";
-import { useEffect, useState } from "react";
-import { motion } from "motion/react";
-import plugins from "@/plugins";
-import { useSearchParams } from "next/navigation";
-import { cn } from "@/lib/utils";
-import Link from "next/link";
-import { OpenSettings } from "./settings-dialog";
-import { deleteModeAtom, loadingProjectAtom, offsetAtom } from "@/lib/state";
 import { useAtom, useAtomValue } from "jotai";
+import { Fullscreen, PackageOpen, Shredder, Shrink } from "lucide-react";
+import { motion } from "motion/react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import useCreateItem from "@/lib/hooks/useCreateItem";
+import { useEnabledPlugins } from "@/lib/hooks/useEnabledPlugins";
+import { deleteModeAtom, loadingProjectAtom, offsetAtom } from "@/lib/state";
+import { cn } from "@/lib/utils";
+import plugins from "@/plugins";
+import { getProjects } from "./project-manager";
+import { OpenSettings } from "./settings-dialog";
 
 export const baseButtonClasses =
   "hover:bg-foreground/10 flex items-center justify-center rounded-lg p-2 transition-all first:rounded-t-full last:rounded-b-full";
@@ -29,7 +30,7 @@ export default function HUD() {
     <>
       <div
         data-visible={isDeleting}
-        className="bg-background/50 absolute top-2 left-1/2 -translate-x-1/2 cursor-default rounded-full p-2 text-center text-sm text-nowrap shadow-sm backdrop-blur-3xl transition-opacity data-[visible=false]:pointer-events-none data-[visible=false]:opacity-0"
+        className="-translate-x-1/2 absolute top-2 left-1/2 cursor-default text-nowrap rounded-full bg-background/50 p-2 text-center text-sm shadow-sm backdrop-blur-3xl transition-opacity data-[visible=false]:pointer-events-none data-[visible=false]:opacity-0"
       >
         Click an item to delete it, or click the delete button again to cancel
       </div>
@@ -43,24 +44,22 @@ export default function HUD() {
         }}
         className="pointer-events-none absolute h-dvh w-dvw opacity-60"
       />
-      <nav className="bg-background/50 absolute top-1/2 right-2 flex -translate-y-1/2 flex-col rounded-full shadow-sm backdrop-blur-3xl">
+      <nav className="-translate-y-1/2 absolute top-1/2 right-2 flex flex-col rounded-full bg-background/50 shadow-sm backdrop-blur-3xl">
         <PluginList />
         <hr className="border-foreground/10" />
         <ProjectSelector />
         <OpenSettings />
         <button
+          type="button"
           title={isDeleting ? "Cancel" : "Delete"}
           data-active={isDeleting}
-          className={cn(
-            baseButtonClasses,
-            "hover:text-destructive data-[active=true]:text-destructive",
-          )}
+          className={cn(baseButtonClasses, "hover:text-destructive data-[active=true]:text-destructive")}
           onClick={() => setIsDeleting(!isDeleting)}
         >
           <Shredder className="size-5" />
         </button>
       </nav>
-      <nav className="bg-background/50 absolute right-2 bottom-2 flex flex-col rounded-full shadow-sm backdrop-blur-3xl">
+      <nav className="absolute right-2 bottom-2 flex flex-col rounded-full bg-background/50 shadow-sm backdrop-blur-3xl">
         <ResetZoom />
       </nav>
     </>
@@ -68,19 +67,16 @@ export default function HUD() {
 }
 
 function PluginList() {
-  const searchParams = useSearchParams();
+  const enabledPlugins = useEnabledPlugins();
   return plugins
-    .filter((p) => p.isRequired || searchParams.has("p:" + p.name))
+    .filter((p) => p.isRequired || enabledPlugins.includes(p.name))
     .map((plugin) => <PluginButton key={plugin.name} plugin={plugin} />);
 }
 
 function PluginButton({ plugin }: { plugin: (typeof plugins)[number] }) {
   const [variant, setVariant] = useState(1);
   const createItem = useCreateItem();
-  const defaultProps =
-    typeof plugin?.defaultProps === "function"
-      ? plugin.defaultProps(variant)
-      : plugin?.defaultProps;
+  const defaultProps = typeof plugin?.defaultProps === "function" ? plugin.defaultProps(variant) : plugin?.defaultProps;
   const pluginDimensions = (typeof plugin.dimensions === "function"
     ? plugin.dimensions(variant)
     : plugin.dimensions) ?? { width: 0, height: 0 };
@@ -89,6 +85,7 @@ function PluginButton({ plugin }: { plugin: (typeof plugins)[number] }) {
 
   return (
     <button
+      type="button"
       key={plugin.name}
       title={`New ${plugin.displayName ?? plugin.name}`}
       className={baseButtonClasses}
@@ -133,6 +130,7 @@ function ProjectSelector() {
   return (
     <div id="project-selector" className="relative">
       <button
+        type="button"
         title="Projects"
         className={cn(baseButtonClasses, "rounded-lg!")}
         onClick={() => setIsSelectorOpen(!isSelectorOpen)}
@@ -142,8 +140,8 @@ function ProjectSelector() {
       {isSelectorOpen && (
         <nav
           className={cn(
-            "bg-background/50 absolute top-0 right-full max-h-64 min-w-32 origin-top-right -translate-x-2 overflow-scroll rounded-lg shadow-sm backdrop-blur-3xl transition-all",
-            isLoading && "pointer-events-none blur-sm select-none",
+            "-translate-x-2 absolute top-0 right-full max-h-64 min-w-32 origin-top-right overflow-scroll rounded-lg bg-background/50 shadow-sm backdrop-blur-3xl transition-all",
+            isLoading && "pointer-events-none select-none blur-sm",
           )}
         >
           {projects.map((p) => (
@@ -152,23 +150,14 @@ function ProjectSelector() {
               onNavigate={() => setLoading(false)}
               replace
               key={p.id}
-              href={`?i=${p.id}${p.plugins.map((p) => `&p:${p}`).join("")}`}
-              className={cn(
-                baseButtonClasses,
-                "justify-start rounded-lg! text-nowrap",
-              )}
+              href={`?i=${p.id}`}
+              className={cn(baseButtonClasses, "justify-start text-nowrap rounded-lg!")}
             >
               {p.title || "Untitled Project"}
             </Link>
           ))}
           <hr className="border-foreground/10 first:hidden" />
-          <Link
-            href="?"
-            className={cn(
-              baseButtonClasses,
-              "justify-start rounded-lg! text-nowrap",
-            )}
-          >
+          <Link href="?" className={cn(baseButtonClasses, "justify-start text-nowrap rounded-lg!")}>
             Create New
           </Link>
         </nav>
@@ -182,11 +171,9 @@ function ResetZoom() {
 
   return (
     <button
+      type="button"
       title={offset.z !== 1 ? "Reset zoom" : "Reset position"}
-      className={cn(
-        baseButtonClasses,
-        "rounded-full data-[hidden=true]:hidden",
-      )}
+      className={cn(baseButtonClasses, "rounded-full data-[hidden=true]:hidden")}
       onClick={() =>
         setOffset((prevOffset) => {
           const mouseX = window.innerWidth / 2;
@@ -197,18 +184,12 @@ function ResetZoom() {
           const newOffsetX = mouseX - worldX;
           const newOffsetY = mouseY - worldY;
 
-          return prevOffset.z !== 1
-            ? { x: newOffsetX, y: newOffsetY, z: 1 }
-            : { x: 0, y: 0, z: 1 };
+          return prevOffset.z !== 1 ? { x: newOffsetX, y: newOffsetY, z: 1 } : { x: 0, y: 0, z: 1 };
         })
       }
       data-hidden={offset.x === 0 && offset.y === 0 && offset.z === 1}
     >
-      {offset.z !== 1 ? (
-        <Fullscreen className="size-5" />
-      ) : (
-        <Shrink className="size-5" />
-      )}
+      {offset.z !== 1 ? <Fullscreen className="size-5" /> : <Shrink className="size-5" />}
     </button>
   );
 }

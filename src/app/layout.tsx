@@ -36,9 +36,7 @@ export default function RootLayout({
           src="//unpkg.com/react-scan/dist/auto.global.js"
         />
       </head> */}
-      <body
-        className={`${excalifont.variable} ${geist.variable} font-(family-name:--font-geist) antialiased`}
-      >
+      <body className={`${excalifont.variable} ${geist.variable} font-(family-name:--font-geist) antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>

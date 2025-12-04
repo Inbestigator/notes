@@ -1,21 +1,17 @@
+import { useEffect, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
 import useUpdateItem from "./useUpdateItem";
-import { useEffect, useState } from "react";
 
-export default function useDebouncedUpdate<T>(
-  id: string,
-  initial: T,
-  timeout = 150,
-  callback?: (v: T) => void,
-) {
+export default function useDebouncedUpdate<T>(id: string, initial: T, timeout = 150, callback?: (v: T) => void) {
   const [value, setValue] = useState(initial);
   const updateItem = useUpdateItem(id);
   const action = callback ? callback : updateItem;
   const debouncedDetails = useDebouncedCallback(action, timeout);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Run once
   useEffect(() => {
     setValue(initial);
-  }, [id, initial]);
+  }, []);
 
   return [
     value,

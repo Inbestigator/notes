@@ -1,6 +1,6 @@
+import type { ClassValue } from "clsx";
 import { cn } from "@/lib/utils";
 import ItemWrapper from "../item-wrapper";
-import { ClassValue } from "clsx";
 
 export default function Sheet({
   id,

@@ -1,14 +1,14 @@
 "use client";
 
-import type { BaseItem } from "@/components/items";
-import { cn } from "@/lib/utils";
-import { StickyNoteIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import type { Plugin } from ".";
-import ItemWrapper from "@/components/item-wrapper";
-import useDebouncedUpdate from "@/lib/hooks/useDebouncedUpdate";
 import { useAtomValue } from "jotai";
+import { StickyNoteIcon } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import ItemWrapper from "@/components/item-wrapper";
+import type { BaseItem } from "@/components/items";
+import useDebouncedUpdate from "@/lib/hooks/useDebouncedUpdate";
 import { zoomAtom } from "@/lib/state";
+import { cn } from "@/lib/utils";
+import type { Plugin } from ".";
 
 interface StickyNote extends BaseItem {
   content: string;
@@ -23,13 +23,7 @@ export default {
   defaultProps: { content: "", width: 0 },
   dimensions: { width: 256, height: 211 },
   HudComponent: ({ variant }) => (
-    <StickyNoteIcon
-      className={cn(
-        "size-5",
-        variant === 2 && "fill-red-200",
-        variant === 3 && "fill-green-200",
-      )}
-    />
+    <StickyNoteIcon className={cn("size-5", variant === 2 && "fill-red-200", variant === 3 && "fill-green-200")} />
   ),
   RenderedComponent,
 } satisfies Plugin<StickyNote>;
@@ -42,18 +36,17 @@ function RenderedComponent({ id, item }: { id: string; item: StickyNote }) {
   const startX = useRef(0);
   const startWidth = useRef(0);
 
-  function calcHeight() {
+  const calcHeight = useCallback(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
-  }
+  }, []);
 
   function handleMouseDown(e: React.MouseEvent) {
     setIsResizing(true);
     startX.current = e.clientX;
-    startWidth.current =
-      latestItemValue.width || textareaRef.current?.offsetWidth || 256;
+    startWidth.current = latestItemValue.width || textareaRef.current?.offsetWidth || 256;
     e.preventDefault();
     e.stopPropagation();
   }
@@ -81,16 +74,12 @@ function RenderedComponent({ id, item }: { id: string; item: StickyNote }) {
         window.removeEventListener("mouseup", handleMouseUp);
       };
     }
-  }, [isResizing, latestItemValue.width, updateItem, zoom]);
+  }, [isResizing, calcHeight, updateItem, zoom]);
 
   return (
     <ItemWrapper
       id={id}
-      tabClassName={cn(
-        "bg-yellow-300",
-        item.variant === 2 && "bg-red-300",
-        item.variant === 3 && "bg-green-300",
-      )}
+      tabClassName={cn("bg-yellow-300", item.variant === 2 && "bg-red-300", item.variant === 3 && "bg-green-300")}
       className={cn(
         "min-h-52 bg-yellow-200 p-4 text-gray-800",
         item.variant === 2 && "bg-red-200",
@@ -108,10 +97,7 @@ function RenderedComponent({ id, item }: { id: string; item: StickyNote }) {
         value={latestItemValue.content}
         ref={textareaRef}
       />
-      <div
-        className="absolute top-0 right-0 h-full w-2 cursor-ew-resize"
-        onMouseDown={handleMouseDown}
-      />
+      <div className="absolute top-0 right-0 h-full w-2 cursor-ew-resize" onMouseDown={handleMouseDown} />
     </ItemWrapper>
   );
 }

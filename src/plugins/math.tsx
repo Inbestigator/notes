@@ -1,12 +1,12 @@
 "use client";
 
-import type { BaseItem } from "@/components/items";
-import type { Plugin } from ".";
 import { CalculatorIcon } from "lucide-react";
-import { useEffect, useRef } from "react";
 import Script from "next/script";
+import { useEffect, useRef } from "react";
+import type { BaseItem } from "@/components/items";
 import Sheet from "@/components/primitives/paper";
 import useDebouncedUpdate from "@/lib/hooks/useDebouncedUpdate";
+import type { Plugin } from ".";
 
 interface Math extends BaseItem {
   calculator: unknown;
@@ -24,7 +24,7 @@ function Calculator({ id, initial }: { id: string; initial: unknown }) {
         setTimeout(loadCalc, 150);
         return;
       }
-      const calc = Desmos.GraphingCalculator(calculatorRef.current!, {
+      const calc = Desmos.GraphingCalculator(calculatorRef.current, {
         keypad: false,
         border: false,
       });
@@ -33,9 +33,7 @@ function Calculator({ id, initial }: { id: string; initial: unknown }) {
       } else {
         calc.setBlank();
       }
-      calc.observeEvent("change", () =>
-        updateItem({ calculator: calc.getState() }),
-      );
+      calc.observeEvent("change", () => updateItem({ calculator: calc.getState() }));
     }
     loadCalc();
   }, [initial, updateItem]);
@@ -54,8 +52,7 @@ function Calculator({ id, initial }: { id: string; initial: unknown }) {
 export default {
   name: "math",
   displayName: "Calculator",
-  description:
-    "Created with the Desmos API, used with permission from Desmos Studio PBC",
+  description: "Created with the Desmos API, used with permission from Desmos Studio PBC",
   dimensions: { width: 672, height: 384 },
   HudComponent: () => <CalculatorIcon className="size-5" />,
   RenderedComponent,

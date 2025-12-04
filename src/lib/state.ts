@@ -1,10 +1,10 @@
-import { BaseItem } from "@/components/items";
-import { Project } from "@/components/project-manager";
 import { atom } from "jotai";
 import { atomFamily } from "jotai/utils";
 import { focusAtom } from "jotai-optics";
 import { nanoid } from "nanoid";
 import { generateUsername } from "unique-username-generator";
+import type { BaseItem } from "@/components/items";
+import type { Project } from "@/components/project-manager";
 import plugins from "@/plugins";
 
 export const randomProject = (): Project => ({
@@ -22,6 +22,8 @@ export const currentProjectAtom = atom(
   (get) => get(hiddenCurrentProjectAtom),
   (get, set, curr: Project | ((p: Project) => Project)) => {
     if (typeof curr === "function") curr = curr(get(hiddenCurrentProjectAtom));
+    const usedItemTypes = [...new Set(curr.items.map((i) => i.type))];
+    curr.plugins = curr.plugins.filter((p) => usedItemTypes.includes(p));
     if (curr.lastModified !== -1) {
       localStorage.setItem(
         `project-${curr.id}`,
@@ -36,25 +38,25 @@ export const currentProjectAtom = atom(
   },
 );
 export const itemsAtom = focusAtom(currentProjectAtom, (o) => o.prop("items"));
-export const offsetAtom = focusAtom(currentProjectAtom, (o) =>
-  o.prop("offset"),
-);
-export const zoomAtom = focusAtom(currentProjectAtom, (o) =>
-  o.prop("offset").prop("z"),
-);
+export const offsetAtom = focusAtom(currentProjectAtom, (o) => o.prop("offset"));
+export const zoomAtom = focusAtom(currentProjectAtom, (o) => o.prop("offset").prop("z"));
 export const enabledPluginsAtom = atom(
   (get) => get(hiddenCurrentProjectAtom).plugins,
   (get, set, fn: (p: string[]) => string[]) => {
-    const curr = fn(get(enabledPluginsAtom)).filter(
-      (e) => !plugins.find((p) => p.name === e)?.isRequired,
-    );
+    const currProject = get(hiddenCurrentProjectAtom);
+    const curr = fn(currProject.plugins).filter((e) => !plugins.find((p) => p.name === e)?.isRequired);
     const params = new URLSearchParams(window.location.search);
-    params.keys().forEach((p) => p.startsWith("p:") && params.delete(p));
+    params.keys().forEach((p) => {
+      p.startsWith("p:") && params.delete(p);
+    });
     for (const plugin of curr) {
-      params.set("p:" + plugin, "");
+      params.set(`p:${plugin}`, "");
     }
-    window.history.replaceState(null, "", "?" + params.toString());
-    set(currentProjectAtom, { ...get(currentProjectAtom), plugins: curr });
+    window.history.replaceState(null, "", `?${params.toString()}`);
+    set(currentProjectAtom, {
+      ...currProject,
+      plugins: curr,
+    });
   },
 );
 

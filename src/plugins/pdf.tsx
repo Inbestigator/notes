@@ -1,13 +1,13 @@
 "use client";
 
-import type { BaseItem } from "../components/items";
-import { useEffect, useState } from "react";
-import Sheet from "../components/primitives/paper";
-import { openFileDB } from "@/lib/db";
 import { FileText } from "lucide-react";
-import { cn } from "@/lib/utils";
-import type { Plugin } from ".";
+import { useEffect, useState } from "react";
+import { openFileDB } from "@/lib/db";
 import useUpdateItem from "@/lib/hooks/useUpdateItem";
+import { cn } from "@/lib/utils";
+import type { BaseItem } from "../components/items";
+import Sheet from "../components/primitives/paper";
+import type { Plugin } from ".";
 
 // TODO: Convert to react-pdf (probably)
 
@@ -27,9 +27,7 @@ export default {
   description: "Display PDF files. Works but exports don't include file",
   defaultProps: { src: "" },
   dimensions: { width: 576, height: 680 },
-  HudComponent: ({ variant }) => (
-    <FileText className={cn("size-5", variant === 2 && "fill-red-300")} />
-  ),
+  HudComponent: ({ variant }) => <FileText className={cn("size-5", variant === 2 && "fill-red-300")} />,
   RenderedComponent,
 } satisfies Plugin<Pdf>;
 
@@ -75,7 +73,7 @@ function RenderedComponent({ id, item }: { id: string; item: Pdf }) {
 
           const db = await openFileDB();
           const tx = db.transaction("pdfs", "readwrite");
-          const id = "upload:pdfs:" + crypto.randomUUID();
+          const id = `upload:pdfs:${crypto.randomUUID()}`;
 
           await tx.store.add({ name: file.name, type: file.type, blob }, id);
 
@@ -85,7 +83,7 @@ function RenderedComponent({ id, item }: { id: string; item: Pdf }) {
       >
         {pdfData && (
           <iframe
-            src={pdfData.src + "#toolbar=0"}
+            src={`${pdfData.src}#toolbar=0`}
             width="100%"
             height="100%"
             style={{ border: "none" }}

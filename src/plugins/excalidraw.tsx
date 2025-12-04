@@ -1,18 +1,15 @@
 "use client";
 
+import { PenTool } from "lucide-react";
+import dynamic from "next/dynamic";
 import type { BaseItem } from "../components/items";
 import Sheet from "../components/primitives/paper";
-import { PenTool } from "lucide-react";
 import type { Plugin } from ".";
-import dynamic from "next/dynamic";
 import "@excalidraw/excalidraw/index.css";
 
-const Excalidraw = dynamic(
-  async () => (await import("@excalidraw/excalidraw")).Excalidraw,
-  {
-    ssr: false,
-  },
-);
+const Excalidraw = dynamic(async () => (await import("@excalidraw/excalidraw")).Excalidraw, {
+  ssr: false,
+});
 
 interface Excalidraw extends BaseItem {
   state: Excalidraw;

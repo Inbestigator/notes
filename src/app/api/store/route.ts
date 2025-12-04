@@ -1,7 +1,6 @@
 import { copy } from "@vercel/blob";
-import { NextResponse } from "next/server";
-import { NextRequest } from "next/server";
-import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
+import { type HandleUploadBody, handleUpload } from "@vercel/blob/client";
+import { type NextRequest, NextResponse } from "next/server";
 
 async function handler(request: Request) {
   const body = (await request.json()) as HandleUploadBody;
